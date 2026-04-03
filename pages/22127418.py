@@ -51,7 +51,7 @@ with st.expander("Mục tiêu SMART", expanded=True):
     st.markdown(
         """
     **Obj 1 — Phân bố doanh thu theo địa lý:**
-    > Phân tích phân bố doanh thu ước tính theo tỉnh/thành từ snapshot 18/3/2026
+    > Phân tích phân bố doanh thu ước tính theo tỉnh/thành
     > để xác định **3 khu vực địa lý dẫn đầu** và mô tả đặc trưng riêng của từng khu vực
     > (mức giá trung bình, tỷ lệ Shopee Mall, số sản phẩm) —
     > giúp người bán biết nên đặt kho/vận chuyển ở đâu để tối ưu phủ sóng và tốc độ giao hàng.
@@ -98,9 +98,9 @@ def normalize_location(loc):
 products["location_norm"] = products["shop_location"].apply(normalize_location)
 
 # Màu sắc (lấy từ helpers; fallback nếu helpers chưa định nghĩa đủ)
-_ACCENT = CB_VERMIL  # màu nhấn chính  (tương đương PINK trước đây)
-_SECOND = CB_BLUE  # màu phụ         (tương đương BLUE trước đây)
-_THIRD = CB_GREEN  # màu thứ ba      (tương đương TEAL trước đây)
+_ACCENT = CB_VERMIL  # màu nhấn chính
+_SECOND = CB_BLUE  # màu phụ
+_THIRD = CB_GREEN  # màu thứ ba
 _MUTED = CB_GRAY  # màu mờ cho cột không nổi bật
 
 
@@ -175,14 +175,19 @@ st.caption(
 )
 
 st.markdown(
-    f"""
+    """
 **Nhận xét Biểu đồ 1a:**
-- Ba khu vực dẫn đầu là **{top3_names[0]}**, **{top3_names[1] if len(top3_names) > 1 else 'N/A'}**
-  và **{top3_names[2] if len(top3_names) > 2 else 'N/A'}** — chiếm tỷ trọng áp đảo so với
-  phần còn lại của thị trường.
-- Khoảng cách giữa vị trí #1 và #2 rất lớn, cho thấy sự tập trung mạnh tại một đô thị trung tâm.
-- Sự phân phối doanh thu theo địa lý phản ánh mật độ người dùng và hạ tầng logistics tại các
-  đô thị lớn phía Nam và phía Bắc.
+- **Hồ Chí Minh** áp đảo hoàn toàn với doanh thu ước tính vượt trội so với tất cả các tỉnh thành còn lại,
+  phản ánh vai trò trung tâm thương mại điện tử lớn nhất cả nước — nơi tập trung phần lớn các shop mỹ phẩm
+  chuyên nghiệp, Shopee Mall và các thương hiệu lớn.
+- **Hà Nội** xếp thứ hai nhưng khoảng cách với vị trí #1 rất lớn, cho thấy thị trường mỹ phẩm online
+  vẫn đang trong giai đoạn tập trung hóa mạnh tại đầu tàu phía Nam.
+- Từ vị trí thứ 3 trở đi, doanh thu giảm rất nhanh và gần như đồng đều — đường cong phân phối dạng
+  long-tail điển hình, phần lớn tỉnh thành đóng góp rất nhỏ vào tổng doanh thu chung.
+- Các tỉnh miền Trung như Đà Nẵng, Thừa Thiên Huế xuất hiện trong top nhưng ở mức rất thấp,
+  gợi ý tiềm năng thị trường chưa được khai thác tại khu vực này.
+- Các tỉnh công nghiệp phía Nam như Bình Dương, Đồng Nai có mặt trong top 15 do mật độ dân số
+  và thu nhập khả dụng tương đối cao, dù không phải trung tâm thương mại lớn.
 """
 )
 
@@ -235,12 +240,19 @@ st.caption(
 st.markdown(
     """
 **Nhận xét Biểu đồ 1b:**
-- Các tỉnh/thành có **nhiều sản phẩm nhất không nhất thiết** có doanh thu cao nhất —
-  **tỷ lệ Mall cao** tương quan rõ hơn với doanh thu.
-- Bong bóng lớn (lượt bán nhiều) tập trung ở nhóm dẫn đầu, cho thấy hiệu ứng
-  "người thắng lấy tất" trong phân phối địa lý.
-- Một số tỉnh có số sản phẩm thấp nhưng tỷ lệ Mall cao → doanh thu trên mỗi sản phẩm
-  cao hơn trung bình, gợi ý phân khúc cao cấp hơn.
+- Biểu đồ cho thấy mối quan hệ **không tuyến tính** giữa số lượng sản phẩm và doanh thu:
+  một số tỉnh có ít sản phẩm nhưng doanh thu cao bất ngờ — điều này thường gặp ở những nơi
+  có tỷ lệ Mall cao, nơi mỗi sản phẩm mang giá trị và lượt bán lớn hơn nhiều.
+- **Hồ Chí Minh** nằm hoàn toàn tách biệt ở góc trên phải — vừa nhiều sản phẩm nhất, vừa
+  doanh thu cao nhất, với bong bóng lớn cho thấy lượt bán cũng dẫn đầu. Đây là điểm ngoại lệ
+  duy nhất kết hợp cả ba chiều mạnh cùng lúc.
+- **Hà Nội** có số sản phẩm đứng thứ hai nhưng doanh thu trên mỗi sản phẩm thấp hơn Hồ Chí Minh,
+  gợi ý cơ cấu sản phẩm nghiêng về phân khúc giá vừa và thấp hơn.
+- Các tỉnh có tỷ lệ Mall cao (màu xanh lá đậm) thường xuất hiện ở phần trên của trục Y dù
+  số sản phẩm không nhiều — xác nhận rằng **chất lượng danh mục quan trọng hơn số lượng**
+  trong việc tạo ra doanh thu.
+- Nhóm tỉnh có bong bóng nhỏ và màu đỏ (nhiều Non-Mall, ít lượt bán) tập trung ở góc dưới trái —
+  đây là thị trường phân tán, cạnh tranh chủ yếu bằng giá thấp và khó tạo ra doanh thu đột phá.
 """
 )
 
@@ -307,11 +319,20 @@ st.caption(
 st.markdown(
     f"""
 **Nhận xét Biểu đồ 1c:**
-- **{top3_names[0]}** nổi bật với hồ sơ cân bằng — dẫn đầu cả doanh thu, lượt bán và số sản phẩm.
-- **{top3_names[1] if len(top3_names) > 1 else ''}** có tỷ lệ Mall tương đối cao hơn,
-  gợi ý thị trường cao cấp và giá bán trung bình lớn hơn.
-- Mỗi khu vực thể hiện một chiến lược khác nhau: volume cao, mall-heavy, hoặc giá thấp
-  kèm lượt bán lớn.
+- **{top3_names[0]}** có diện tích polygon lớn nhất và cân bằng nhất trên cả 6 chiều —
+  dẫn đầu đồng thời về doanh thu, lượt bán, số sản phẩm và tỷ lệ Mall, đây là thị trường
+  trưởng thành nhất với hệ sinh thái người bán đa dạng và cạnh tranh cao.
+- **{top3_names[1] if len(top3_names) > 1 else ''}** nổi bật ở chiều **Tỷ lệ Mall** và
+  **Giá trung bình** — cho thấy thị trường này thiên về phân khúc cao cấp hơn, ít sản phẩm
+  budget, người mua sẵn sàng chi nhiều hơn cho mỗi đơn hàng.
+- **{top3_names[2] if len(top3_names) > 2 else ''}** có hồ sơ khiêm tốn hơn trên hầu hết
+  các chiều nhưng vẫn lọt top 3 nhờ **khối lượng lượt bán** đáng kể — chiến lược cạnh tranh
+  bằng giá thấp và số lượng giao dịch lớn thay vì doanh thu trên mỗi đơn.
+- Sự khác biệt rõ ràng giữa 3 hồ sơ cho thấy mỗi khu vực có đặc thù riêng và người bán
+  cần điều chỉnh chiến lược sản phẩm, định giá và khuyến mãi cho từng thị trường địa phương
+  thay vì áp dụng một công thức chung.
+- Chiều **Đánh giá trung bình** gần như bằng nhau giữa 3 khu vực — xác nhận rằng chất lượng
+  dịch vụ và sản phẩm không phụ thuộc vào địa lý mà phụ thuộc vào từng người bán cụ thể.
 """
 )
 
@@ -324,14 +345,29 @@ st.markdown("### Kết luận — Obj 1")
 st.success(
     f"""
 Ba khu vực dẫn đầu là **{top3_names[0]}**, **{top3_names[1] if len(top3_names) > 1 else 'N/A'}**
-và **{top3_names[2] if len(top3_names) > 2 else 'N/A'}**,
-chiếm khoảng **{top3_pct:.1f}%** tổng doanh thu ước tính toàn thị trường.
+và **{top3_names[2] if len(top3_names) > 2 else 'N/A'}**, chiếm khoảng **{top3_pct:.1f}%**
+tổng doanh thu ước tính toàn thị trường mỹ phẩm Shopee — một mức độ tập trung cực kỳ cao
+cho thấy thị trường đang ở giai đoạn winner-takes-most rõ rệt theo địa lý.
 
-Doanh thu mỹ phẩm trên Shopee tập trung cao độ tại hai đầu tàu kinh tế Bắc–Nam, phản ánh
-mật độ người dùng và hạ tầng giao nhận vượt trội. Các tỉnh thành còn lại đóng góp phần nhỏ
-nhưng có tiềm năng tăng trưởng nếu được đầu tư logistics và chính sách giá phù hợp.
-**Người bán mới nên ưu tiên đặt kho/vận chuyển tại {top3_names[0]}** để tối ưu tốc độ giao hàng
-và phủ sóng khách hàng.
+Sự tập trung này không phải ngẫu nhiên: Hồ Chí Minh và Hà Nội là nơi đặt trụ sở của phần lớn
+các thương hiệu mỹ phẩm lớn, các nhà phân phối chính thức và Shopee Mall — những đơn vị tạo
+ra doanh thu lớn nhất. Hạ tầng logistics phát triển ở hai đầu tàu này cũng giúp rút ngắn
+thời gian giao hàng, một yếu tố tác động trực tiếp đến tỷ lệ chuyển đổi trong mua sắm online.
+
+Các tỉnh thành bên ngoài top 3 đóng góp rất nhỏ và phân tán — nhưng đây không hẳn là thị trường
+yếu, mà có thể là **thị trường chưa được khai thác**: người mua tại các tỉnh này vẫn mua mỹ phẩm
+trên Shopee nhưng từ các shop đặt tại Hồ Chí Minh hoặc Hà Nội, nghĩa là doanh thu thực tế
+của người tiêu dùng địa phương cao hơn nhiều so với những gì dữ liệu shop_location thể hiện.
+
+**Khuyến nghị chiến lược:**
+- Người bán mới nên **đặt kho và địa chỉ shop tại Hồ Chí Minh hoặc Hà Nội** để tối ưu
+  thời gian giao hàng và tăng khả năng hiển thị trong kết quả tìm kiếm Shopee (thuật toán
+  ưu tiên shop gần người mua).
+- Người bán đang hoạt động tại tỉnh nhỏ nên cân nhắc hợp tác với đơn vị fulfillment tại
+  hai đầu tàu để cạnh tranh về tốc độ giao hàng.
+- Tỷ lệ Mall cao tại top 3 cho thấy đây là thị trường đã trưởng thành — người bán Non-Mall
+  cần có USP rõ ràng (giá tốt hơn, sản phẩm ngách, dịch vụ tư vấn) để tồn tại bên cạnh
+  các thương hiệu lớn.
 """
 )
 
@@ -407,18 +443,33 @@ for i in range(1, 4):
 
 st.plotly_chart(fig4, use_container_width=True)
 st.caption(
-    "Hộp = IQR (25th–75th percentile); đường ngang = median; dấu X = mean ± SD. "
+    "Hộp = IQR (25th–75th percentile); đường ngang = median; hình thoi = mean ± SD. "
     "Đã cắt tại percentile 99 để tránh outlier cực đoan làm méo biểu đồ."
 )
 
 st.markdown(
     """
 **Nhận xét Biểu đồ 2a:**
-- **Sold:** Sản phẩm Mall có trung vị sold cao hơn rõ rệt; phân phối rải rộng hơn do một số
-  sản phẩm Mall có lượt bán cực lớn.
-- **Rating:** Hai nhóm gần như ngang nhau — chất lượng cảm nhận của khách hàng không chênh
-  lệch đáng kể chỉ vì nhãn Mall.
-- **Revenue:** Mall dẫn đầu rõ ràng; median của Mall cao hơn trung bình toàn bộ Non-Mall.
+- **Sold:** Hộp IQR của Mall và Non-Mall đều nằm rất thấp, gần 0 — đại đa số sản phẩm ở cả
+  hai nhóm có lượt bán khá thấp. Tuy nhiên Mall có phần đuôi trên (râu và outlier) kéo dài
+  lên đến ~10k, trong khi Non-Mall có một outlier đơn lẻ lên đến ~20k. Mean của Mall
+  (đường đứt nét) nằm cao hơn median rõ rệt, cho thấy một nhóm nhỏ sản phẩm Mall bán rất
+  chạy đang kéo trung bình lên — phân phối lệch phải mạnh ở cả hai nhóm.
+- **Rating:** Đây là chỉ số thú vị nhất trong ba chiều. Hộp IQR của cả Mall và Non-Mall
+  đều nằm trong khoảng 4.5–5.0★, median gần sát 5★. Hình thoi độ lệch chuẩn của hai nhóm
+  khá rộng và gần như bằng nhau, kéo xuống tận vùng 3.5–4.0★ — cho thấy dù phần lớn sản
+  phẩm được đánh giá cao, vẫn có một bộ phận đáng kể ở cả hai nhóm nhận rating thấp.
+  Quan trọng hơn, không có sự khác biệt rõ ràng nào giữa Mall và Non-Mall — nhãn Mall
+  không đảm bảo rating cao hơn.
+- **Revenue:** Hộp IQR của cả hai nhóm đều nằm rất thấp gần 0, nhưng Mall có râu trên
+  kéo đến ~2,500 triệu trong khi Non-Mall kéo đến ~5,000 triệu — tức là outlier doanh thu
+  cực lớn lại xuất hiện ở Non-Mall nhiều hơn, không phải Mall. Điều này cho thấy một số
+  shop Non-Mall quy mô lớn đang tạo ra doanh thu khổng lồ, cạnh tranh ngang ngửa thậm chí
+  vượt trội so với Mall về tổng doanh thu tuyệt đối.
+- Nhìn chung cả ba biểu đồ đều thể hiện phân phối **lệch phải rất mạnh** (right-skewed) —
+  phần lớn sản phẩm ở cả hai nhóm hoạt động ở mức khiêm tốn, trong khi một thiểu số nhỏ
+  tạo ra phần lớn giá trị thị trường. Đây là đặc trưng điển hình của thị trường thương mại
+  điện tử theo quy luật phân phối lũy thừa (power-law distribution).
 """
 )
 
@@ -489,11 +540,27 @@ st.caption(
 st.markdown(
     """
 **Nhận xét Biểu đồ 2b:**
-- Mall có **lượt bán trung bình và doanh thu ước tính cao hơn** hẳn.
-- Mall cũng có **giá trung bình cao hơn** và thường áp dụng **discount cao hơn**
-  (chiến lược giảm giá sâu để tạo khối lượng bán).
-- Non-Mall cạnh tranh ở phân khúc giá thấp hơn với biên lợi nhuận mỏng hơn,
-  nhưng bù lại bằng số lượng sản phẩm đa dạng.
+- **Sold trung bình:** Ngược với kỳ vọng, **Non-Mall (1960.6) cao hơn Mall (1500.3)** —
+  chênh lệch khoảng 30%. Điều này nhất quán với quan sát outlier từ biểu đồ 2a: một số
+  shop Non-Mall quy mô lớn có lượt bán rất cao đang kéo trung bình của nhóm này lên.
+  Mean bị ảnh hưởng mạnh bởi outlier, nên con số này không đại diện cho sản phẩm
+  Non-Mall điển hình — median ở biểu đồ 2a cho thấy bức tranh chính xác hơn.
+- **Rating trung bình:** Hai nhóm gần như bằng nhau — Mall 4.7★ và Non-Mall 4.6★,
+  chênh lệch chỉ 0.1★. Xác nhận lại kết luận từ biểu đồ 2a: nhãn Mall không tạo ra
+  lợi thế về chất lượng cảm nhận của khách hàng. Non-Mall hoàn toàn có thể duy trì
+  rating ngang bằng Mall nếu đảm bảo chất lượng sản phẩm và dịch vụ.
+- **Revenue trung bình (triệu VNĐ):** Tương tự sold, **Non-Mall (326.3 triệu) cao hơn
+  Mall (167.7 triệu)** — gần gấp đôi. Kết hợp với sold trung bình cao hơn, điều này
+  cho thấy nhóm Non-Mall đang bị kéo lên bởi một số shop có doanh thu rất lớn.Tuy nhiên trung bình không phản ánh đúng sản phẩm Non-Mall thông
+  thường vì phân phối lệch phải rất mạnh.
+- **Giá trung bình (nghìn VNĐ):** **Non-Mall (166.0 nghìn) cao hơn Mall (112.4 nghìn)**
+  — đây là điểm bất ngờ. Có thể giải thích bởi: các shop Non-Mall lớn bán sản phẩm
+  cao cấp nhập khẩu không qua kênh chính hãng, hoặc cơ cấu sản phẩm của Mall nghiêng
+  về hàng tiêu dùng nhanh giá thấp (sữa rửa mặt, kem dưỡng phổ thông) nhiều hơn.
+- **Discount trung bình (%):** Gần như bằng nhau — Mall 18.8% và Non-Mall 18.5%,
+  chênh lệch không đáng kể. Cả hai nhóm áp dụng mức chiết khấu tương đương nhau
+  như một công cụ kích cầu tiêu chuẩn trên nền tảng Shopee, không có sự khác biệt
+  chiến lược rõ ràng giữa hai nhóm về mức giảm giá.
 """
 )
 
@@ -573,10 +640,23 @@ st.caption(
 st.markdown(
     f"""
 **Nhận xét Biểu đồ 2c:**
-- Mặc dù Mall chỉ chiếm **{mall_prod_pct:.1f}%** số lượng sản phẩm,
-  nhưng đóng góp đến **{mall_rev_pct:.1f}%** doanh thu và **{mall_sold_pct:.1f}%** tổng lượt bán.
-- Điều này cho thấy nhãn Shopee Mall mang lại hiệu ứng uy tín (*trust signal*) rõ rệt,
-  giúp tỷ lệ chuyển đổi cao hơn đáng kể so với cửa hàng thông thường.
+- **Về doanh thu:** Mall chỉ chiếm **{mall_rev_pct:.1f}%** (tương đương 1,391 tỷ VNĐ) —
+  thấp hơn đáng kể so với tỷ lệ số sản phẩm ({mall_prod_pct:.1f}%). Điều này cho thấy
+  doanh thu trung bình trên mỗi sản phẩm của Mall **thấp hơn** Non-Mall, nhất quán với
+  kết quả từ biểu đồ 2b. Non-Mall chiếm tới **74.4%** tổng doanh thu — phần lớn đến từ
+  một nhóm nhỏ shop Non-Mall quy mô lớn có doanh thu rất cao.
+- **Về lượt bán:** Mall chiếm **{mall_sold_pct:.1f}%** (12.4 triệu lượt), thấp hơn tỷ lệ
+  số sản phẩm ({mall_prod_pct:.1f}%). Non-Mall chiếm tới **66.1%** lượt bán — xác nhận
+  rằng phần lớn giao dịch trên thị trường mỹ phẩm Shopee đang diễn ra ở kênh Non-Mall,
+  không phải Mall.
+- **So sánh hai vòng tròn:** Tỷ lệ Mall trong lượt bán (33.9%) cao hơn trong doanh thu
+  (25.6%) — nghĩa là giá bán trung bình mỗi giao dịch của Mall **thấp hơn** Non-Mall.
+  Điều này phản ánh cơ cấu sản phẩm Mall nghiêng về hàng tiêu dùng nhanh giá thấp
+  (sữa rửa mặt, kem dưỡng phổ thông), trong khi một số shop Non-Mall lớn đang kinh doanh
+  sản phẩm cao cấp với giá trị đơn hàng cao hơn.
+- Kết quả này đảo ngược hoàn toàn nhận định ban đầu: **Non-Mall đang chiếm ưu thế áp đảo**
+  trên thị trường mỹ phẩm Shopee cả về doanh thu lẫn lượt bán, bất chấp việc Mall được
+  hưởng nhiều lợi thế về hiển thị và uy tín nền tảng.
 """
 )
 
@@ -627,12 +707,26 @@ nonmall_rating = nonmall[nonmall["rating"] > 0]["rating"].mean()
 st.markdown(
     f"""
 **Nhận xét Biểu đồ 2d:**
-- Phân phối rating của Mall ({mall_rating:.2f}★) và Non-Mall ({nonmall_rating:.2f}★) rất gần nhau
-  và tập trung cao ở vùng **4.5–5.0★**.
-- Mall không có lợi thế rõ ràng về rating — khách hàng đánh giá dựa trên trải nghiệm thực tế,
-  không phải nhãn hiệu cửa hàng.
-- Xu hướng rating tích cực ở cả hai nhóm có thể do: khách hàng chỉ để lại đánh giá khi
-  hài lòng, hoặc hệ thống khuyến khích đánh giá 5 sao bằng xu/voucher.
+- **Hình dạng violin:** Cả hai nhóm đều có hình dạng **"giọt nước ngược"** — phần thân
+  phình rất rộng ở vùng gần 5★ và thu hẹp nhanh chóng thành đuôi mảnh kéo xuống 3★.
+  Điều này cho thấy tuyệt đại đa số sản phẩm có rating tập trung rất cao ở mức 4.8–5.0★,
+  trong khi rating thấp hơn rất hiếm gặp.
+- **Mall (cam):** Phần thân violin rộng và tập trung gần sát 5★, đuôi kéo xuống đến 3★
+  nhưng rất mảnh — cho thấy có tồn tại sản phẩm bị đánh giá thấp nhưng số lượng không
+  đáng kể so với tổng thể. Mật độ tập trung ở đỉnh 5★ rất cao, phản ánh phần lớn sản
+  phẩm Mall đang duy trì chất lượng dịch vụ tốt.
+- **Non-Mall (xanh):** Hình dạng tương tự Mall nhưng phần thân hơi nhỏ hơn và đuôi
+  kéo xuống đến 3★ cũng mảnh tương đương. Điểm khác biệt là vùng 4.5★ của Non-Mall
+  có phần thắt rõ hơn — mật độ sản phẩm ở khoảng 4.5–4.8★ thưa hơn so với Mall,
+  nghĩa là Non-Mall có xu hướng phân cực hơn: hoặc rất gần 5★ hoặc thấp hơn 4.5★.
+- **So sánh tổng thể:** Hai violin gần như đối xứng và có hình dạng rất giống nhau —
+  xác nhận rằng phân phối rating giữa Mall và Non-Mall **không có sự khác biệt có ý
+  nghĩa**. Với mean {mall_rating:.2f}★ (Mall) và {nonmall_rating:.2f}★ (Non-Mall), chênh
+  lệch 0.1★ hoàn toàn không đủ để kết luận Mall có chất lượng cảm nhận vượt trội hơn.
+- Hiện tượng rating dồn về 5★ ở cả hai nhóm là đặc trưng điển hình của thương mại điện
+  tử Việt Nam: Shopee tích cực khuyến khích người mua để lại đánh giá thông qua xu
+  Shopee và voucher, dẫn đến hành vi đánh giá mang tính xã giao nhiều hơn là phản ánh
+  trải nghiệm thực tế.
 """
 )
 
@@ -640,16 +734,39 @@ st.markdown(
 st.markdown("### Kết luận — Obj 2")
 st.success(
     f"""
-Shopee Mall thể hiện ưu thế rõ ràng về **doanh thu và lượt bán**: chỉ với {mall_prod_pct:.1f}%
-số sản phẩm nhưng tạo ra {mall_rev_pct:.1f}% tổng doanh thu — cho thấy nhãn Mall là một
-*trust signal* mạnh trong hành vi mua sắm mỹ phẩm. Tuy nhiên, về **điểm đánh giá**, hai nhóm
-gần như ngang nhau ({mall_rating:.2f}★ vs {nonmall_rating:.2f}★), cho thấy Non-Mall vẫn có thể
-cạnh tranh về chất lượng dịch vụ.
+Phân tích so sánh giữa Shopee Mall và Non-Mall trên ba chiều chính — sold, rating và revenue_est —
+cho thấy một bức tranh **đảo ngược hoàn toàn so với kỳ vọng ban đầu**: Non-Mall đang chiếm
+ưu thế áp đảo trên thị trường mỹ phẩm Shopee, không phải Mall.
+
+**Về doanh thu và lượt bán:** Non-Mall chiếm tới {100-mall_rev_pct:.1f}% tổng doanh thu và
+{100-mall_sold_pct:.1f}% tổng lượt bán, dù Mall chiếm {mall_prod_pct:.1f}% số sản phẩm.
+Doanh thu trung bình trên mỗi sản phẩm của Non-Mall (326.3 triệu) cao gần gấp đôi Mall
+(167.7 triệu), và giá bán trung bình của Non-Mall (166.0 nghìn) cũng cao hơn Mall (112.4 nghìn).
+Điều này cho thấy thị trường mỹ phẩm Shopee không vận hành theo mô hình "Mall thống trị"
+mà là một thị trường đa dạng, nơi các shop Non-Mall quy mô lớn đang tạo ra phần lớn giá trị.
+Cần lưu ý rằng kết quả này bị ảnh hưởng bởi một nhóm nhỏ shop Non-Mall có doanh thu
+cực lớn kéo trung bình lên — phân phối lệch phải mạnh khiến mean không đại diện cho
+sản phẩm Non-Mall điển hình.
+
+**Về đánh giá:** Không có sự khác biệt có ý nghĩa giữa hai nhóm ({mall_rating:.2f}★ vs
+{nonmall_rating:.2f}★), chênh lệch chỉ 0.1★. Cả hai nhóm đều có violin tập trung dày đặc
+ở vùng 4.8–5.0★ với đuôi mảnh kéo xuống 3★. Nhãn Mall không mang lại lợi thế về chất lượng
+cảm nhận — người tiêu dùng đánh giá dựa trên trải nghiệm thực tế với sản phẩm và giao hàng,
+không phải dựa trên loại cửa hàng.
 
 **Chiến lược đề xuất:**
-- **Non-Mall:** Tập trung tích lũy đánh giá tích cực, cải thiện tỷ lệ phản hồi, cân nhắc
-  đăng ký Shopee Mall khi đủ điều kiện để hưởng lợi từ hiệu ứng uy tín thương hiệu.
-- **Mọi nhóm:** Chiến lược giảm giá sâu kết hợp free shipping là đòn bẩy hiệu quả để
-  tăng volume bán hàng, đặc biệt trong các đợt sale lớn.
+- **Người bán Non-Mall** không cần vội đăng ký Mall — dữ liệu cho thấy Non-Mall hoàn toàn
+  có thể đạt doanh thu và rating ngang bằng hoặc vượt trội hơn Mall nếu xây dựng được
+  quy mô và uy tín đủ lớn. Ưu tiên đầu tư vào chất lượng sản phẩm, tốc độ giao hàng
+  và chăm sóc khách hàng sau bán để tích lũy đánh giá tích cực bền vững.
+- **Người bán Mall** cần nhìn nhận lại lợi thế cạnh tranh thực sự: nhãn Mall không tự
+  động đảm bảo doanh thu hay rating cao hơn. Lợi thế của Mall nằm ở uy tín thương hiệu
+  và khả năng tiếp cận phân khúc khách hàng ưu tiên hàng chính hãng — cần khai thác
+  đúng phân khúc này thay vì cạnh tranh giá với Non-Mall.
+- **Về chiến lược giảm giá:** Cả hai nhóm áp dụng discount gần như bằng nhau (~18.5–18.8%),
+  cho thấy đây đã là mức chuẩn thị trường. Người bán không nên chạy đua giảm giá thêm
+  mà nên tập trung vào giá trị gia tăng: tặng kèm mẫu thử, hướng dẫn sử dụng, tư vấn
+  chọn sản phẩm — đặc biệt quan trọng trong ngành mỹ phẩm nơi người mua thường không
+  chắc chắn về sản phẩm phù hợp với da mình.
 """
 )

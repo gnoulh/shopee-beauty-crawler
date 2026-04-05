@@ -103,7 +103,7 @@ def setup_sidebar(team_name: str = "Nhóm 01") -> None:
         width=120,
     )
     st.sidebar.title(f"Lab 01 – {team_name}")
-    st.sidebar.markdown("**Dữ liệu:** Shopee VN, crawl 18–19/3/2026")
+    st.sidebar.markdown("**Dữ liệu:** Shopee Việt Nam, crawl 18–19/3/2026")
     st.sidebar.markdown("---")
     st.sidebar.caption(
         "`products.csv`, `shops.csv`, `reviews.csv` lưu trữ trong thư mục `data`"

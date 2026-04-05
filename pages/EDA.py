@@ -17,7 +17,7 @@ from utils.helpers import (
     SEQ_BLUES, DIV_RDBU,
 )
 
-st.set_page_config(page_title="EDA – Tổng quan", page_icon="📊", layout="wide")
+st.set_page_config(page_title="EDA – Tổng quan", layout="wide")
 setup_sidebar()
 
 # ====== Load ======
@@ -34,7 +34,7 @@ c1.metric("Sản phẩm", f"{len(products):,}")
 c2.metric("Cửa hàng", f"{len(shops):,}")
 c3.metric("Đánh giá", f"{len(reviews):,}")
 c4.metric("Danh mục con", f"{products['sub_category'].nunique()}")
-c5.metric("Tổng DT ước tính", f"{products['revenue_est'].sum()/1e12:.1f} nghìn tỷ ₫")
+c5.metric("Tổng DT ước tính", f"{products['revenue_est'].sum()/1e12:.1f} nghìn tỷ đồng")
 
 st.info("""
 **Vị trí code thu thập dữ liệu:**
@@ -85,7 +85,7 @@ with tab_r:
     schema_r = pd.DataFrame({
         "Trường": ["item_id","shop_id","reviewer_id","rating","review_text",
                    "review_length","has_image","has_video","helpful_count","reviewed_ts"],
-        "Mô tả": ["FK→products","FK→shops","ID ẩn danh","Số sao (1–5)","Nội dung tự do",
+        "Mô tả": ["FK->products","FK->shops","ID ẩn danh","Số sao (1–5)","Nội dung tự do",
                   "Độ dài (ký tự)","Kèm ảnh","Kèm video","Lượt thấy hữu ích","Timestamp"],
     })
     st.dataframe(schema_r, hide_index=True, use_container_width=True)
@@ -195,9 +195,16 @@ st.dataframe(products[avail].describe().round(2), use_container_width=True)
 st.markdown("---")
 st.markdown("""
 ### 4. Nhận xét tổng quan
-- **Kích thước mẫu:** 20,658 sản phẩm; 5,746 cửa hàng; 23,989 đánh giá.
-- **Phân bố price_tier:** ...
-- **Phân bố rating:** J-curve rõ rệt - 99.58% là 5 sao -> cần cân bằng khi phân tích ML.
-- **Tương quan sold<->revenue:** ...
-- **Counterintuitive — shop_rating:** ...
+
+- **Kích thước mẫu:** 20,658 sản phẩm (38 cột, 4,448 ô missing); 5,746 cửa hàng; 23,989 đánh giá — đủ lớn để phân tích phân phối và so sánh nhóm. Dữ liệu bao phủ 28 danh mục con.
+
+- **Phân bố price_tier (budget/mid-low chiếm ưu thế):** Budget có 10,051 SP và mid-low có 8,633 SP — cộng lại chiếm ~90% tổng số sản phẩm. Phân khúc mid chỉ có 1,787 SP, premium 159 SP, luxury 28 SP. Phản ánh đúng định vị Shopee là nền tảng đại chúng giá phải chăng.
+
+- **Phân bố giá và sold (lệch phải mạnh):** Giá trung bình 144,452 đồng nhưng trung vị chỉ 103,206 đồng — chênh lệch lớn do outlier giá cao kéo trung bình lên. Sold trung bình 1,776 nhưng trung vị chỉ 95 — phân phối lũy thừa điển hình TMĐT: phần lớn SP bán ít, một thiểu số nhỏ bán rất nhiều.
+
+- **Phân bố rating (J-curve):** 23,888/23,989 đánh giá (99.6%) là 5 sao — J-curve điển hình TMĐT Việt Nam. Shopee khuyến khích rating bằng xu/voucher -> cần cân bằng khi dùng ML phân loại cảm xúc (tham khảo thêm tại trang Đánh giá).
+
+- **Tương quan sold <-> revenue (r=0.79):** Liên kết mạnh nhất trong toàn bộ ma trận — doanh thu ước tính được quyết định chủ yếu bởi lượng bán, không phải giá. Hàm ý: chiến lược volume-first hiệu quả hơn premium-only trên Shopee.
+
+- **Counterintuitive — shop_rating <-> revenue (r=–0.15):** Tương quan âm nhẹ giữa rating cửa hàng và doanh thu sản phẩm. Giải thích: các mega-shop bán hàng chục nghìn SP có thể có vài review tiêu cực làm giảm nhẹ điểm rating, trong khi shop nhỏ mới mở có ít review toàn 5 sao nhưng doanh thu thấp. Đây là trường hợp Simpson's Paradox — xem chi tiết tại trang Shops.
 """)

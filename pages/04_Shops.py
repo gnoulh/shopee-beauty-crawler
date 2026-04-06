@@ -20,17 +20,19 @@ from sklearn.metrics import silhouette_score
 import warnings; warnings.filterwarnings("ignore")
 
 from utils.helpers import (
+    inject_css, member_badge, conclusion_box,
     load_data, setup_sidebar,
     CB_ORANGE, CB_SKYBLUE, CB_GREEN, CB_BLUE, CB_VERMIL, CB_GRAY,
 )
 
 st.set_page_config(page_title="04 – Hiệu quả Cửa hàng", layout="wide")
-setup_sidebar()
+inject_css(); setup_sidebar()
 
 products, shops, reviews = load_data()
 
 st.title("Hiệu quả Cửa hàng & Chỉ số Lòng tin")
 st.caption("shops.csv + products.csv - 5,746 cửa hàng - crawl 18/3/2026 - MSSV: 23127361")
+member_badge("23127361", "MT5 & 10")
 
 # === SMART ===
 st.subheader("Bảng tiêu chí SMART")

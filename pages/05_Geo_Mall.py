@@ -18,18 +18,20 @@ from plotly.subplots import make_subplots
 import warnings; warnings.filterwarnings("ignore")
 
 from utils.helpers import (
+    inject_css, member_badge, conclusion_box,
     load_data, get_active, setup_sidebar,
     CB_ORANGE, CB_SKYBLUE, CB_GREEN, CB_BLUE, CB_VERMIL, CB_GRAY, SEQ_BLUES,
 )
 
-st.set_page_config(page_title="05 – Địa lý & Mall/NonMall", mlayout="wide")
-setup_sidebar()
+st.set_page_config(page_title="05 – Địa lý & Mall/NonMall", layout="wide")
+inject_css(); setup_sidebar()
 
 products, shops, reviews = load_data()
 active = get_active(products)
 
 st.title("Địa lý & So sánh Shopee Mall vs Non-Mall")
 st.caption("products.csv - 20,658 sản phẩm - crawl 18/3/2026 - MSSV: 22127418")
+member_badge("22127418", "MT4 & 7")
 
 with st.expander("Mục tiêu SMART (MT7 & 4)", expanded=False):
     st.markdown("""
@@ -106,7 +108,7 @@ st.markdown("""
 """)
 
 # === Biểu đồ 1b: Bubble chart ===========================================================================
-st.subheader("Biểu đồ 1b: Bubble chart — Số sản phẩm × Doanh thu × Tỷ lệ Mall")
+st.subheader("Biểu đồ 1b: Bubble chart — Số sản phẩm x Doanh thu x Tỷ lệ Mall")
 
 geo_plot = geo_df[geo_df["product_count"] >= 50].copy()
 fig2 = px.scatter(geo_plot, x="product_count", y="revenue_B", size="sold",

@@ -42,8 +42,8 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     Cached — chỉ đọc file 1 lần mỗi session.
     """
     products = pd.read_csv("data/products.csv")
-    shops    = pd.read_csv("data/shops.csv")
-    reviews  = pd.read_csv("data/reviews.csv")
+    shops = pd.read_csv("data/shops.csv")
+    reviews = pd.read_csv("data/reviews.csv")
     return products, shops, reviews
 
 
@@ -95,15 +95,92 @@ def add_trendline(
     return fig
 
 
-# ====================== Sidebar branding (call at top of every page) ===================================
+# === Sidebar branding (call at top of every page) =========
+TEAM_CSS = """
+<style>
+/* === Global typography & background === */
+html, body, [class*="css"] { font-family: 'Inter', 'Segoe UI', sans-serif; }
+.main .block-container { padding-top: 1.2rem; padding-bottom: 2rem; }
+
+/* === Metric cards === */
+div[data-testid="stMetric"] {
+    background: #fff;
+    border: 1px solid #ffe0d6;
+    border-left: 4px solid #EE4D2D;
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: 0 2px 8px rgba(238,77,45,.08);
+}
+div[data-testid="stMetricValue"] { color: #EE4D2D; font-weight: 700; }
+
+/* === Section headers === */
+h2 { color: #1a1a2e !important; border-bottom: 2px solid #EE4D2D;
+     padding-bottom: .25rem; margin-top: 1.8rem; }
+h3 { color: #2d2d44 !important; }
+
+/* === Member badge === */
+.member-badge {
+    display:inline-block; background:#fff3f0; color:#c0392b;
+    border:1px solid #EE4D2D; border-radius:6px;
+    padding:2px 10px; font-size:.78rem; font-weight:600;
+    margin-bottom:.5rem;
+}
+/* === Conclusion box === */
+.conclusion-box {
+    background:#f0fff4; border-left:5px solid #27ae60;
+    border-radius:0 8px 8px 0; padding:14px 18px;
+    margin-top:1rem;
+}
+/* === Page divider ====== */
+hr { border:none; border-top:2px solid #ffe0d6; margin:1.5rem 0; }
+
+/* === Sidebar ============ */
+section[data-testid="stSidebar"] { background: #1a1a2e; }
+section[data-testid="stSidebar"] * { color: #f0f0f0 !important; }
+section[data-testid="stSidebar"] a { color: #ffb09e !important; }
+</style>
+"""
+
+
+def inject_css() -> None:
+    """Inject shared Shopee-themed CSS. Call once per page after set_page_config."""
+    st.markdown(TEAM_CSS, unsafe_allow_html=True)
+
+
+def member_badge(mssv: str, obj: str) -> None:
+    """Render a small attribution badge below a section header."""
+    st.markdown(
+        f'<span class="member-badge"> MSSV {mssv} · {obj}</span>',
+        unsafe_allow_html=True,
+    )
+
+
+def conclusion_box(text: str) -> None:
+    """Render a green conclusion/insight box."""
+    st.markdown(
+        f'<div class="conclusion-box">{text}</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def setup_sidebar(team_name: str = "Nhóm 01") -> None:
     """Render consistent sidebar branding across all pages."""
     st.sidebar.image(
         "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Shopee.svg/200px-Shopee.svg.png",
-        width=120,
+        width=100,
     )
-    st.sidebar.title(f"Lab 01 – {team_name}")
-    st.sidebar.markdown("**Dữ liệu:** Shopee Việt Nam, crawl 18–19/3/2026")
+    st.sidebar.markdown(f"### Lab 01 – {team_name}")
+    st.sidebar.markdown("**Dữ liệu:** Shopee Việt Nam, 18–19/3/2026")
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("""
+**Thành viên:**
+| MSSV | Mục tiêu |
+|------|-----------|
+| 22127254 | 1, 2, 8 |
+| 23127488 | 3, 9 |
+| 23127361 | 5, 10 |
+| 22127418 | 4, 7 |
+""")
     st.sidebar.markdown("---")
     st.sidebar.caption(
         "`products.csv`, `shops.csv`, `reviews.csv` lưu trữ trong thư mục `data`"

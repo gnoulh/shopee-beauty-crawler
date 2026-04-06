@@ -8,19 +8,14 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from utils.helpers import load_data, setup_sidebar
 
-st.set_page_config(
-    page_title="Shopee Mỹ phẩm VN – Lab 01",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+st.set_page_config(page_title="Shopee Mỹ phẩm VN – Lab 01",
+                  layout="wide", initial_sidebar_state="expanded")
+setup_sidebar()
 
-setup_sidebar()          # Branding nhất quán
-
-# ====================== Kiểm tra data ======================
 try:
     products, shops, reviews = load_data()
     DATA_OK = True
-except FileNotFoundError as e:
+except FileNotFoundError:
     DATA_OK = False
 
 # ====================== Header ========================================================================================
@@ -29,7 +24,7 @@ st.caption("Shopee Vietnam, Snapshot crawl 18–19/3/2026, Lab 01 – Trực qua
 
 if not DATA_OK:
     st.error(
-        f"Không tìm thấy file dữ liệu: `{missing}`\n\n"
+        f"Không tìm thấy file dữ liệu \n"
     )
     st.stop()
 
@@ -42,6 +37,13 @@ st.markdown("""
 > các yếu tố then chốt ảnh hưởng đến **doanh thu ước tính** và **hành vi đánh giá** của người tiêu dùng,
 > từ đó **đề xuất ít nhất 3 chiến lược kinh doanh** có cơ sở dữ liệu cho người bán hàng trên sàn.
 """.format(len(products), len(shops), len(reviews)))
+
+c1,c2,c3,c4,c5 = st.columns(5)
+c1.metric("Sản phẩm", f"{len(products):,}")
+c2.metric("Cửa hàng", f"{len(shops):,}")
+c3.metric("Đánh giá", f"{len(reviews):,}")
+c4.metric("Danh mục con", f"{products['sub_category'].nunique()}")
+c5.metric("Tổng DT ước tính", f"{products['revenue_est'].sum()/1e12:.1f} nghìn tỷ ₫")
 
 st.markdown("---")
 st.markdown("### Điều hướng")
@@ -58,7 +60,7 @@ with col2:
     st.caption("MT3 K-Means (price x sold) - MT6 Volume/Margin driver (23127488)")
     st.page_link("pages/04_Shops.py", label="Hiệu quả Cửa hàng")
     st.caption("MT10 K-Means shop - MT5 Pearson correlation (23127361)")
-    st.page_link("pages/05_Geo_Mall.py", label="Địa lý & Mall vs Non-Mall",              icon="🗺️")
+    st.page_link("pages/05_Geo_Mall.py", label="Địa lý & Mall vs Non-Mall")
     st.caption("MT7 Top tỉnh/thành · MT4 Box/Violin/Donut/Radar  (22127418)")
 
 st.markdown("---")
@@ -82,7 +84,7 @@ obj_df = pd.DataFrame({
                    "03 Market","05 Geo","01 Pricing","02 Reviews","04 Shops"],
     "Thành viên": ["Cả nhóm","22127254","22127254","23127488","22127418","23127361",
                    "23127488","22127418","22127254","23127488","23127361"],
-    "ML":         ["—","—","—","K-Means","—","—","—","—","—","TF-IDF+LogReg","K-Means"],
+    "ML":         ["—","Random Forest","—","K-Means","—","—","—","—","—","TF-IDF+LogReg","K-Means"],
 })
 st.dataframe(obj_df, hide_index=True, use_container_width=True)
 

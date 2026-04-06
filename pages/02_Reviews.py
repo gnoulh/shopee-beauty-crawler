@@ -3,7 +3,7 @@ pages/02_Reviews.py — Đánh giá & Phân tích Cảm xúc Khách hàng
 ================================================================
 PHÂN CÔNG:
   MT9 — 23127488: Trích xuất từ khóa + phân loại 4 nhóm nguyên nhân
-  ML — 22127254: TF-IDF + Logistic Regression phân loại review
+  ML: TF-IDF + Logistic Regression phân loại review
 ================================================================
 """
 import sys, pathlib
@@ -21,18 +21,20 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 import warnings; warnings.filterwarnings("ignore")
 
 from utils.helpers import (
+    inject_css, member_badge, conclusion_box,
     load_data, setup_sidebar,
     CB_ORANGE, CB_SKYBLUE, CB_BLUE, CB_VERMIL, CB_GRAY,
     extract_free, tokenize,
 )
 
 st.set_page_config(page_title="02 – Đánh giá & Cảm xúc", layout="wide")
-setup_sidebar()
+inject_css(); setup_sidebar()
 
 products, shops, reviews = load_data()
 
 st.title("Đánh giá & Phân tích Cảm xúc Khách hàng")
 st.caption("reviews.csv - 23,989 đánh giá - crawl 19/3/2026 - MSSV: 23127488")
+member_badge("23127488", "MT9")
 
 with st.expander("Mục tiêu SMART (MT9)", expanded=False):
     st.markdown("""

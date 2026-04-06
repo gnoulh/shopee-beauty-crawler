@@ -7,7 +7,7 @@ Mục tiêu 1 — Ngưỡng discount tối ưu theo price_tier
          Heatmap + Box plot (faceted) + Scatter + OLS
 Mục tiêu 2 — Top 5 danh mục theo revenue_est + đặc trưng định giá
          Bar ngang + Grouped bar + Bubble chart (22 danh mục)
-Mục tiêu 8 — Ma trận chiến lược BCG (22 danh mục) + Lollipop composite score
+Mục tiêu 7 — Ma trận chiến lược BCG (22 danh mục) + Lollipop composite score
          Bubble BCG + Lollipop
 
 """
@@ -39,7 +39,7 @@ active = get_active(products)
 
 st.title("Chiến lược Giá, Danh mục & Ma trận BCG")
 st.caption("products.csv - 20,658 sản phẩm - crawl 18/3/2026 - 22127254")
-member_badge("22127254", "MT1 - MT2 - MT8 - ML")
+member_badge("22127254", "MT1 - MT2 - MT7 - ML")
 
 with st.expander("Tổng hợp Mục tiêu SMART (22127254)", expanded=False):
     st.markdown("""
@@ -47,7 +47,7 @@ with st.expander("Tổng hợp Mục tiêu SMART (22127254)", expanded=False):
 |---|---|---|
 | **1** | Sử dụng `discount_pct`, `sold`, `price_tier` của 20,658 SP crawl 18/3/2026 để xác định khoảng `discount_pct` có trung vị `sold` cao nhất trong từng `price_tier` (budget -> luxury), đề xuất ngưỡng chiết khấu tối ưu cho mỗi phân khúc, hoàn thành trong phạm vi phân tích snapshot này | Heatmap + Box plot + Scatter+OLS |
 | **2** | Tính tổng `revenue_est` và trung bình `price`, `discount_pct`, `sold` của từng `sub_category` trong bộ dữ liệu 18/3/2026 để xác định top 5 danh mục doanh thu cao nhất và mô tả đặc trưng định giá bằng >= 2 loại biểu đồ khác nhau | Bar ngang + Grouped bar + Bubble |
-| **8** | So sánh trung bình `sold`, `rating`, `revenue_est` của 22 `sub_category` trong snapshot 18/3/2026 để xác định top 5 danh mục tiềm năng nhất (doanh thu cao VÀ lượng bán cao), trực quan hóa bằng bubble chart kết hợp lollipop chart | Bubble BCG + Lollipop |
+| **7** | So sánh trung bình `sold`, `rating`, `revenue_est` của 22 `sub_category` trong snapshot 18/3/2026 để xác định top 5 danh mục tiềm năng nhất (doanh thu cao VÀ lượng bán cao), trực quan hóa bằng bubble chart kết hợp lollipop chart | Bubble BCG + Lollipop |
 | **ML** | Random Forest phân loại sản phẩm bán chạy (`sold > median`) từ `price_tier`, `sub_category`, `discount_pct`, `is_mall` -> Feature importance | Confusion matrix + Feature importance bar |
 """)
 st.markdown("---")
@@ -207,10 +207,10 @@ conclusion_box("""
 st.markdown("---")
 
 # ======
-# MT8 — Ma trận chiến lược BCG + Lollipop
+# MT7 — Ma trận chiến lược BCG + Lollipop
 # ======
-st.markdown("## MT8 — Ma trận Chiến lược Danh mục (BCG-style) & Lollipop Tiềm năng")
-member_badge("22127254", "MT8")
+st.markdown("## MT7 — Ma trận Chiến lược Danh mục (BCG-style) & Lollipop Tiềm năng")
+member_badge("22127254", "MT7")
 
 st.subheader("Biểu đồ 3a: Bubble chart BCG — 22 danh mục - 4 ô chiến lược")
 st.caption("Trục X = Lượng bán TB - Trục Y = Doanh thu tổng (Tỷ VND) - Kích thước = Số SP - Màu = Giá TB (Viridis)")
@@ -273,7 +273,7 @@ st.plotly_chart(fig_lol, use_container_width=True)
 st.caption("Lollipop = biến thể bar chart giảm ink-to-data ratio (nguyên tắc Tufte). Cam = Top 5.")
 
 conclusion_box("""
-<b> Nhận xét MT8:</b><br>
+<b> Nhận xét MT7:</b><br>
 • <b>Ngôi sao — mặt nạ</b> (Composite=1.000): Outlier tuyệt đối. Chỉ có 2 danh mục vượt ngưỡng 0.5.<br>
 • <b>Ngôi sao — sữa rửa mặt</b> (0.614): Lựa chọn an toàn thứ 2 để gia nhập thị trường.<br>
 • <b>Sinh lời:</b> kem dưỡng ẩm, serum, toner — margin tốt, phù hợp người bán có sản phẩm chất lượng cao.<br>

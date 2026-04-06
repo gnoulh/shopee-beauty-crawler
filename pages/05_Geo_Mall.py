@@ -2,7 +2,7 @@
 pages/05_Geo_Mall.py — Địa lý & So sánh Shopee Mall vs Non-Mall
 ================================================================
 PHÂN CÔNG: 22127418
-  MT7 — Phân tích phân bố doanh thu theo tỉnh/thành (top 3 khu vực)
+  MT6 — Phân tích phân bố doanh thu theo tỉnh/thành (top 3 khu vực)
   MT4 — So sánh Mall vs Non-Mall: box plot, grouped bar, donut, violin
 ================================================================
 """
@@ -31,11 +31,11 @@ active = get_active(products)
 
 st.title("Địa lý & So sánh Shopee Mall vs Non-Mall")
 st.caption("products.csv - 20,658 sản phẩm - crawl 18/3/2026 - MSSV: 22127418")
-member_badge("22127418", "MT4 & 7")
+member_badge("22127418", "MT4 & 6")
 
-with st.expander("Mục tiêu SMART (MT7 & 4)", expanded=False):
+with st.expander("Mục tiêu SMART (MT6 & 4)", expanded=False):
     st.markdown("""
-    **MT7:** Phân tích phân bố `revenue_est` theo `shop_location` để xác định
+    **MT6:** Phân tích phân bố `revenue_est` theo `shop_location` để xác định
     **3 khu vực dẫn đầu** và mô tả đặc trưng riêng (mức giá TB, tỷ lệ Mall, số SP) —
     giúp người bán biết nên đặt kho/vận chuyển ở đâu để tối ưu phủ sóng.
 
@@ -63,9 +63,9 @@ products["location_norm"] = products["shop_location"].apply(normalize_location)
 _ACCENT = CB_VERMIL; _SECOND = CB_BLUE; _MUTED = CB_GRAY
 
 # ======
-# MT7 — Địa lý
+# MT6 — Địa lý
 # ======
-st.markdown("## Mục tiêu 7 — Phân bố Doanh thu theo Tỉnh/Thành")
+st.markdown("## Mục tiêu 6 — Phân bố Doanh thu theo Tỉnh/Thành")
 
 geo_df = (
     products.groupby("location_norm")
@@ -171,7 +171,7 @@ total_rev = geo_df["revenue_est"].sum()
 top3_pct = top3_rev / total_rev * 100 if total_rev > 0 else 0
 
 st.success(f"""
-**Kết luận MT7:** Ba khu vực dẫn đầu — **{', '.join(top3_names)}** — chiếm ~**{top3_pct:.1f}%**
+**Kết luận MT6:** Ba khu vực dẫn đầu — **{', '.join(top3_names)}** — chiếm ~**{top3_pct:.1f}%**
 tổng doanh thu: mức tập trung địa lý cực cao (winner-takes-most).
 Người bán mới nên đặt kho tại Hồ Chí Minh/Hà Nội để tối ưu thời gian giao hàng và hiển thị Shopee.
 """)

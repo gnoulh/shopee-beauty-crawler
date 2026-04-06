@@ -2,7 +2,7 @@
 pages/04_Shops.py — Hiệu quả Cửa hàng & Chỉ số Lòng tin
 ================================================================
 PHÂN CÔNG: 23127361
-  MT10 — K-Means phân cụm shop theo 4 tiêu chí lòng tin (k=4, Silhouette)
+  MT9 — K-Means phân cụm shop theo 4 tiêu chí lòng tin (k=4, Silhouette)
   MT5 — Tương quan chỉ số shop -> revenue_est sản phẩm
 ================================================================
 """
@@ -32,13 +32,13 @@ products, shops, reviews = load_data()
 
 st.title("Hiệu quả Cửa hàng & Chỉ số Lòng tin")
 st.caption("shops.csv + products.csv - 5,746 cửa hàng - crawl 18/3/2026 - MSSV: 23127361")
-member_badge("23127361", "MT5 & 10")
+member_badge("23127361", "MT5 & 9")
 
 # === SMART ===
 st.subheader("Bảng tiêu chí SMART")
 smart_df = pd.DataFrame({
     "Tiêu chí": ["Specific","Measurable","Achievable","Relevant","Time-bound"],
-    "MT10 – Phân cụm Shop": [
+    "MT9 – Phân cụm Shop": [
         "Phân 4 nhóm shop theo follower, rating_count, rating_star, response_rate",
         "Đo bằng Silhouette score + tổng revenue_est và total_sold mỗi nhóm",
         "K-Means trên tập dữ liệu đã làm sạch (5,746 shops)",
@@ -71,9 +71,9 @@ def prep_shop_data(products_df, shops_df):
 df = prep_shop_data(products, shops)
 
 # ===============
-# MT10 — K-Means phân cụm shop
+# MT9 — K-Means phân cụm shop
 # ===============
-st.subheader("Mục tiêu 10 — K-Means phân cụm Cửa hàng theo Độ tin cậy (k=4)")
+st.subheader("Mục tiêu 9 — K-Means phân cụm Cửa hàng theo Độ tin cậy (k=4)")
 
 features = ["follower_count","rating_count","rating_star","response_rate"]
 avail_f  = [f for f in features if f in df.columns]

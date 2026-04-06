@@ -4,7 +4,6 @@ pages/03_Market.py — Phân khúc Thị trường & Chiến lược Sản phẩ
 PHÂN CÔNG:
   MT3 — Phân khúc K-Means (price x sold, log-normalized, Silhouette)
         Đánh giá tỷ trọng doanh thu từng phân khúc
-  MT6 — 23127488: Volume Driver vs Margin Driver theo phân khúc
 ================================================================
 """
 import sys, pathlib
@@ -149,5 +148,5 @@ conclusion_box("""
 • Phân khúc <b>Cao cấp – Bán chậm</b>: margin cao, volume thấp — phù hợp thương hiệu uy tín.<br>
 • Phân khúc <b>Phổ thông – Bán chạy</b>: chiến lược volume — tốt để xây reviews ban đầu.<br>
 • Phân khúc <b>Phổ thông – Bán chậm</b>: cần xem lại chiến lược giá.<br>
-• <b>Nhất quán với MT8 (22127254)</b>: Phổ thông–Bán chạy ~ ô Phễu; Cao cấp–Bán chạy ~ ô Ngôi sao.
+• <b>Nhất quán với MT7 (22127254)</b>: Phổ thông–Bán chạy ~ ô Phễu; Cao cấp–Bán chạy ~ ô Ngôi sao.
 """)

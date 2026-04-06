@@ -2,7 +2,7 @@
 pages/02_Reviews.py — Đánh giá & Phân tích Cảm xúc Khách hàng
 ================================================================
 PHÂN CÔNG:
-  MT9 — 23127488: Trích xuất từ khóa + phân loại 4 nhóm nguyên nhân
+  MT8 — 23127488: Trích xuất từ khóa + phân loại 4 nhóm nguyên nhân
   ML: TF-IDF + Logistic Regression phân loại review
 ================================================================
 """
@@ -34,9 +34,9 @@ products, shops, reviews = load_data()
 
 st.title("Đánh giá & Phân tích Cảm xúc Khách hàng")
 st.caption("reviews.csv - 23,989 đánh giá - crawl 19/3/2026 - MSSV: 23127488")
-member_badge("23127488", "MT9")
+member_badge("23127488", "MT8")
 
-with st.expander("Mục tiêu SMART (MT9)", expanded=False):
+with st.expander("Mục tiêu SMART (MT8)", expanded=False):
     st.markdown("""
     > Trích xuất và phân tích **10 từ khóa phổ biến** trong các đánh giá 1–3 sao thu thập được
     > tính tới tháng 3/2026, phân loại theo **4 nhóm nguyên nhân** (sự cố sản phẩm, trải nghiệm KH,

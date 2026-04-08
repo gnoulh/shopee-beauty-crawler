@@ -1,9 +1,8 @@
 """
-pages/02_Reviews.py — Đánh giá & Phân tích Cảm xúc Khách hàng
+pages/02_Reviews.py — Phân tích Đánh giá khách hàng
 ================================================================
 PHÂN CÔNG:
   MT8 — 23127488: Trích xuất từ khóa + phân loại 4 nhóm nguyên nhân
-  ML: TF-IDF + Logistic Regression phân loại review
 ================================================================
 """
 import sys, pathlib

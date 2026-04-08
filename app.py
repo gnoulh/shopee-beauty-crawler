@@ -68,7 +68,7 @@ st.markdown("---")
 # === Objectives table ===
 st.markdown("### Danh sách 10 Objectives đã hoàn thành")
 obj_df = pd.DataFrame({
-    "Obj": ["EDA","MT1","MT2","MT3","MT4","MT5","MT6","MT7","MT8","MT9"],
+    "Obj": ["EDA","MT1","MT2","MT3","MT4","MT5","MT6","MT7","MT8","MT9", "MT10"],
     "Nội dung":   ["Tổng quan dataset — kích thước, schema, phân bố biến, correlation",
                    "Discount tối ưu theo price_tier — Heatmap + Box + Scatter+OLS",
                    "Top 5 danh mục theo revenue_est — Bar + Grouped bar + Bubble",
@@ -78,13 +78,13 @@ obj_df = pd.DataFrame({
                    "Volume Driver vs Margin Driver theo cluster — Grouped bar",
                    "Địa lý top tỉnh/thành — Bar ngang, Bubble, Radar chart",
                    "BCG bubble 22 danh mục + Lollipop composite score",
-                   "Review 1–3 sao vs 5 sao — từ khóa, 4 nhóm nguyên nhân, TF-IDF+LogReg",
+                   "Review 1–3 sao vs 5 sao — từ khóa, 4 nhóm nguyên nhân",
                    "K-Means shop 4 tiêu chí lòng tin — Silhouette + Pie + Bar"],
     "Trang":      ["EDA","01 Pricing","01 Pricing","03 Market","05 Geo","04 Shops",
                    "03 Market","05 Geo","01 Pricing","02 Reviews","04 Shops"],
     "Thành viên": ["Cả nhóm","22127254","22127254","23127488","22127418","23127361",
                    "23127488","22127418","22127254","23127488","23127361"],
-    "ML":         ["—","Random Forest","—","K-Means","—","—","—","—","—","TF-IDF+LogReg","K-Means"],
+    "ML":         ["—","Random Forest","—","K-Means","—","—","—","—","—","—","K-Means"],
 })
 st.dataframe(obj_df, hide_index=True, use_container_width=True)
 

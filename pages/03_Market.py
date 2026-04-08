@@ -185,9 +185,9 @@ st.dataframe(disp.reset_index(drop=True), hide_index=True, use_container_width=T
 
 conclusion_box("""
 <b> Nhận xét MT3 (23127488):</b><br>
-• Phân khúc <b>Cao cấp – Bán chạy</b>: giá cao và lượng bán cao — tỷ trọng doanh thu lớn nhất, cạnh tranh nhất.<br>
-• Phân khúc <b>Cao cấp – Bán chậm</b>: margin cao, volume thấp — phù hợp thương hiệu uy tín.<br>
-• Phân khúc <b>Phổ thông – Bán chạy</b>: chiến lược volume — tốt để xây reviews ban đầu.<br>
-• Phân khúc <b>Phổ thông – Bán chậm</b>: cần xem lại chiến lược giá.<br>
-• <b>Nhất quán với MT7 (22127254)</b>: Phổ thông–Bán chạy ~ ô Phễu; Cao cấp–Bán chạy ~ ô Ngôi sao.
+• Phân khúc <b>Cao cấp – Bán chạy</b>: Giá cao và lượng bán cao — tỷ trọng doanh thu lớn nhất, cạnh tranh nhất.<br>
+• Phân khúc <b>Cao cấp – Bán chậm</b>: Biên lợi nhuận cao, sản lượng thấp — đóng vai trò định vị và củng cố uy tín thương hiệu.<br>
+• Phân khúc <b>Phổ thông – Bán chạy</b>: Giá bình dân, lượng bán lớn — phù hợp chiến lược đẩy số lượng, thu hút tệp khách hàng mới và xây dựng đánh giá (reviews) ban đầu.<br>
+• Phân khúc <b>Phổ thông – Bán chậm</b>: Hiệu quả kém — cần đánh giá lại chiến lược giá hoặc chất lượng sản phẩm.<br>
+• <b>Tính nhất quán với MT7 (22127254)</b>: Kết quả đồng nhất với MT7 (Phổ thông–Bán chạy tương đương "ô Phễu"; Cao cấp–Bán chạy tương đương "ô Ngôi sao").
 """)

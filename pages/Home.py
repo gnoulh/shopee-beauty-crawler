@@ -110,7 +110,7 @@ st.markdown("""
 **2. Mặt nạ là ngoại lệ của thị trường (MT2, 3, 8)**
 > Mặt nạ dẫn đầu doanh thu (700B), lượng bán TB cao nhất (5,280), Composite Score = 1.000 (MT7) và thể hiện trong cluster "Phổ thông – Bán chạy" (MT3). Ba mục tiêu đều xác nhận: đây là category duy nhất đạt cả hai chiều (volume và revenue) nhưng cũng là sân chơi cạnh tranh nhất.
 
-**3. Followers quyết định doanh thu — Không phải Rating (MT5, 10)**
+**3. Followers quyết định doanh thu — Không phải Rating (MT5, 9)**
 > MT5 (Pearson correlation) xác nhận followers là yếu tố có |r| cao nhất với revenue. MT9 (K-Means shop) cho thấy "Shop Dẫn Đầu" — nhóm followers cao nhất — chiếm tỷ trọng doanh thu không cân xứng. Nhất quán với MT8 (reviews): rating 5 sao phổ biến trên toàn nền tảng nên không còn là yếu tố phân biệt.
 
 **4. Non-Mall vượt Mall về doanh thu — Nhưng không đều (MT4, 5)**
@@ -144,7 +144,7 @@ with col_s3:
     **Chiến lược 3:**
     **Đầu tư Followers thay vì chạy đua giá**
 
-    Dựa trên MT5 & 10: Followers có tương quan cao nhất với revenue.
+    Dựa trên MT5 & 9: Followers có tương quan cao nhất với revenue.
     Chiến dịch tăng Followers (follow-to-get-voucher) ROI cao hơn chạy Flash Sale.
     Maintain response_rate >90% để vào nhóm "Shop Uy Tín".
     """)

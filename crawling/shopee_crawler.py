@@ -44,12 +44,11 @@ CDP_URL       = "http://localhost:9222"
 PARENT_CATID  = 11036279   # Sắc Đẹp top-level
 PAGE_SIZE     = 60
 
-# Increase delays to be considerate
-DELAY         = (8.0, 12.0)      # Between pages: 8-12s (was 5-8s)
+DELAY = (8.0, 12.0)      # Between pages: 8-12s (was 5-8s)
 DELAY_KEYWORD = (15.0, 25.0)     # Between keywords: 15-25s
 DELAY_CATEGORY = (15.0, 25.0)    # Between categories: 15-25s
-DELAY_REVIEW  = (3.0, 5.0)        # Between reviews: 3-5s
-DELAY_SHOP    = (1.0, 2.0)          # Between shops: 1-2s
+DELAY_REVIEW = (3.0, 5.0)        # Between reviews: 3-5s
+DELAY_SHOP = (1.0, 2.0)          # Between shops: 1-2s
 
 # --- Sub-categories — crawls assigned keywords + cats ---
 MEMBER_CONFIG = {
@@ -86,7 +85,7 @@ MEMBER_CONFIG = {
 ALL_KEYWORDS = [kw for m in MEMBER_CONFIG.values() for kw in m["keywords"]]
 
 MAX_PAGES_PER_KEYWORD = 17  
-MAX_PAGES_PER_CAT     = 17
+MAX_PAGES_PER_CAT = 17
 
 BRANDS = [
     # International
@@ -271,26 +270,26 @@ def parse_price(raw) -> int:
     return int(raw) // 100000
 
 def price_tier(p: int) -> str:
-    if p <= 0:           return "unknown"
-    elif p < 100_000:    return "budget"
-    elif p < 300_000:    return "mid-low"
-    elif p < 700_000:    return "mid"
-    elif p < 1_500_000:  return "premium"
-    else:                return "luxury"
+    if p <= 0: return "unknown"
+    elif p < 100_000: return "budget"
+    elif p < 300_000: return "mid-low"
+    elif p < 700_000: return "mid"
+    elif p < 1_500_000: return "premium"
+    else: return "luxury"
 
 def parse_item(raw: dict, cat_name: str, sort_src: str = "") -> dict | None:
-    d       = raw.get("item_basic", raw)
+    d = raw.get("item_basic", raw)
     item_id = d.get("itemid")
     shop_id = d.get("shopid")
     if not item_id or not shop_id:
         return None
-    ip   = parse_price(d.get("price", 0))
-    op   = parse_price(d.get("price_before_discount", 0) or d.get("price_max", 0))
+    ip = parse_price(d.get("price", 0))
+    op = parse_price(d.get("price_before_discount", 0) or d.get("price_max", 0))
     if op == 0 or op < ip:
         op = ip
     disc = round((op - ip) / op * 100, 1) if op > 0 and op > ip else 0.0
     sold = d.get("sold", 0) or 0
-    rc   = (d.get("item_rating") or {}).get("rating_count", [0]*6) or [0]*6
+    rc = (d.get("item_rating") or {}).get("rating_count", [0]*6) or [0]*6
     name = d.get("name", "")
     brand = extract_brand(name)
     return {
@@ -440,7 +439,7 @@ async def crawl_keyword(page, keyword: str, max_pages: int, conn) -> int:
         print(f"  {keyword}: Initial nav error {e}")
         return 0
 
-    # Check for captcha AFTER base navigation
+    # Check for captcha after base navigation
     current_url = page.url
     if "verify/captcha" in current_url or "verify/traffic" in current_url:
         print(f"\n  CAPTCHA REDIRECT DETECTED AFTER BASE NAV")
@@ -461,7 +460,7 @@ async def crawl_keyword(page, keyword: str, max_pages: int, conn) -> int:
 
     # Now crawl pages 0, 1, 2, ...
     for page_num in range(0, max_pages):
-        # Check for captcha redirect FIRST
+        # Check for captcha redirect first
         current_url = page.url
         if "verify/captcha" in current_url or "verify/traffic" in current_url:
             print(f"\n  CAPTCHA REDIRECT DETECTED")
@@ -513,7 +512,7 @@ async def crawl_keyword(page, keyword: str, max_pages: int, conn) -> int:
         finally:
             page.remove_listener("response", on_response)
 
-        # Check AGAIN after navigation
+        # Check again after navigation
         current_url = page.url
         if "verify/captcha" in current_url or "verify/traffic" in current_url:
             print(f"\n  CAPTCHA REDIRECT AFTER NAV (page {page_num})")
@@ -563,8 +562,8 @@ async def crawl_category(page, catid: int, cat_name: str, max_pages: int, conn) 
 
     for sort_by in ["sales", "popular", "ctime"]:
         print(f"  Trying sort={sort_by}...")
-        for page_num in range(0, max_pages):  # Changed to 0-based
-            # Check for captcha redirect FIRST
+        for page_num in range(0, max_pages):  # 0-based
+            # Check for captcha redirect first
             current_url = page.url
             if "verify/captcha" in current_url or "verify/traffic" in current_url:
                 print(f"\n  CAPTCHA REDIRECT DETECTED")
@@ -609,7 +608,7 @@ async def crawl_category(page, catid: int, cat_name: str, max_pages: int, conn) 
             finally:
                 page.remove_listener("response", on_response)
 
-            # Check AGAIN after navigation
+            # Check again after navigation
             current_url = page.url
             if "verify/captcha" in current_url or "verify/traffic" in current_url:
                 print(f"\n  CAPTCHA REDIRECT AFTER NAV")
@@ -746,7 +745,7 @@ async def crawl_reviews(page, max_products: int = 800, reviews_per_product: int 
 async def crawl_shops(page):
     conn  = get_conn()
     
-    # Get shops NOT YET in database
+    # Get shops not in database yet
     rows  = conn.execute("""
         SELECT DISTINCT p.shop_id FROM products p
         WHERE p.shop_id NOT IN (SELECT shop_id FROM shops)
@@ -765,7 +764,7 @@ async def crawl_shops(page):
             await handle_captcha(page, timeout=45)
         
         shop_id = row["shop_id"]
-        url     = f"https://shopee.vn/api/v4/product/get_shop_info?shopid={shop_id}"
+        url = f"https://shopee.vn/api/v4/product/get_shop_info?shopid={shop_id}"
         
         try:
             data = await page.evaluate(f"""

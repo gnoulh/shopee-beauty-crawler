@@ -23,7 +23,6 @@ from utils.helpers import (
     CB_ORANGE, CB_SKYBLUE, CB_GREEN, CB_BLUE, CB_VERMIL, CB_GRAY, SEQ_BLUES,
 )
 
-st.set_page_config(page_title="05 – Địa lý & Mall/NonMall", layout="wide")
 inject_css(); setup_sidebar()
 
 products, shops, reviews = load_data()

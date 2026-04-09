@@ -21,8 +21,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
 import warnings; warnings.filterwarnings("ignore")
 
 from utils.helpers import (
@@ -31,7 +33,6 @@ from utils.helpers import (
     CB_ORANGE, CB_SKYBLUE, CB_GREEN, CB_BLUE, CB_VERMIL, CB_GRAY, SEQ_BLUES,
 )
 
-st.set_page_config(page_title="Giá & Danh mục", layout="wide")
 inject_css(); setup_sidebar()
 
 products, shops, reviews = load_data()
@@ -55,10 +56,9 @@ st.markdown("---")
 # === Shared prep ===
 bins = [0,10,20,30,40,50,100]
 labels = ["0–10%","10–20%","20–30%","30–40%","40–50%",">50%"]
-work   = active[active["discount_pct"] >= 0].copy()
+work = active[active["discount_pct"] >= 0].copy()
 work["discount_bin"] = pd.cut(work["discount_pct"], bins=bins, labels=labels, right=False)
 t_ord = [t for t in ["budget","mid-low","mid","premium","luxury"] if t in work["price_tier"].unique()]
-tcmap  = dict(zip(t_ord, [CB_BLUE,CB_SKYBLUE,CB_GREEN,CB_ORANGE,CB_VERMIL]))
 
 cat_agg = (
     active.groupby("sub_category")
@@ -76,56 +76,121 @@ top5 = cat_agg.head(5)
 st.markdown("## Mục tiêu 1 — Ngưỡng chiết khấu tối ưu theo phân khúc giá")
 member_badge("22127254", "MT1")
 
-pivot = (work.groupby(["price_tier","discount_bin"])["sold"]
-         .median().unstack(fill_value=0).reindex(t_ord))
+selected_tiers = st.multiselect(
+    "Lọc phân khúc giá (tất cả nếu để trống):",
+    options=t_ord,
+    default=[]
+)
+if selected_tiers:
+    work_filtered = work[work["price_tier"].isin(selected_tiers)]
+    t_ord_filtered = [t for t in t_ord if t in selected_tiers]
+else:
+    work_filtered = work
+    t_ord_filtered = t_ord
+tcmap = dict(zip(t_ord_filtered, [CB_BLUE,CB_SKYBLUE,CB_GREEN,CB_ORANGE,CB_VERMIL]))
+
+pivot = (work_filtered.groupby(["price_tier","discount_bin"])["sold"]
+         .median().unstack(fill_value=0).reindex(columns=labels).reindex(t_ord_filtered))
+
+st.subheader("Ngữ cảnh: Phân bố giá theo phân khúc")
+fig_ctx = px.histogram(
+    work_filtered, x="price", color="price_tier",
+    nbins=80, log_y=True,
+    color_discrete_map=tcmap,
+    category_orders={"price_tier": t_ord_filtered},
+    template="plotly_white",
+    labels={"price": "Giá (VND)", "price_tier": "Phân khúc"},
+    title="Phân bố giá sản phẩm theo phân khúc (log Y)"
+)
+fig_ctx.update_layout(barmode="overlay")
+fig_ctx.update_traces(opacity=0.6)
+st.plotly_chart(fig_ctx, use_container_width=True)
+st.caption("Cung cấp ngữ cảnh cho MT1: ranh giới giá thực tế giữa các tier.")
 
 st.subheader("Biểu đồ 1a: Heatmap — Trung vị sold theo price_tier x discount_bin")
 fig = px.imshow(pivot, text_auto=".0f", color_continuous_scale="Blues", aspect="auto",
                 title="Trung vị lượng bán theo phân khúc giá x khoảng chiết khấu",
                 labels={"color":"Median sold","x":"Khoảng chiết khấu","y":"Phân khúc giá"})
+for tier in t_ord_filtered:
+    if tier not in pivot.index:
+        continue
+    best_col = pivot.loc[tier].idxmax()
+    best_val = pivot.loc[tier].max()
+    col_idx = list(pivot.columns).index(best_col)
+    row_idx = list(pivot.index).index(tier)
+    fig.add_annotation(
+        x=col_idx, y=row_idx,
+        text="O",
+        showarrow=False,
+        font=dict(size=50, color="#FFD700"),
+        xref="x", yref="y"
+    )
 fig.update_layout(plot_bgcolor="white")
 st.plotly_chart(fig, use_container_width=True)
 st.caption("Ô màu đậm hơn = trung vị sold cao hơn. Đọc từng hàng để tìm khoảng discount tối ưu mỗi tier.")
 
 st.subheader("Biểu đồ 1b: Box plot — Phân bố sold theo discount_bin (từng tier)")
-box_s = work[work["sold"] < work["sold"].quantile(0.97)].copy()
+box_s = work_filtered[work_filtered["sold"] < work_filtered["sold"].quantile(0.97)].copy()
 if not box_s.empty:
-    fig_box = px.box(box_s, x="discount_bin", y="sold", color="price_tier",
+    DISCOUNT_ORDER = ["0–10%", "10–20%", "20–30%", "30–40%", "40–50%", ">50%"]
+    fig_box = px.box(box_s, x="discount_bin", y="sold", log_y=True, color="price_tier",
                      facet_col="price_tier", facet_col_wrap=3, points=False,
                      color_discrete_map=tcmap, template="plotly_white",
+                     category_orders={"discount_bin": DISCOUNT_ORDER},
                      labels={"discount_bin":"Khoảng chiết khấu","sold":"Số đã bán"},
                      title="Phân bố lượng bán theo khoảng chiết khấu — theo price_tier (bỏ 3% outlier)")
     fig_box.update_layout(showlegend=False)
+    fig_box.update_yaxes(range=[0, 4])  # log10 range: 1 to 10,000
     st.plotly_chart(fig_box, use_container_width=True)
-    st.caption("Hộp = IQR (Q1–Q3). Đường giữa = trung vị. Whisker = 1.5xIQR.")
+    st.caption("Hộp = IQR (Q1–Q3). Đường giữa = trung vị. Whisker = 1.5xIQR. Trục Y: log scale.")
 
 st.subheader("Biểu đồ 1c: Scatter — Discount (%) vs Lượng bán (log Y)")
-samp = work.dropna(subset=["discount_pct","sold","price_tier"]).sample(min(3000,len(work)), random_state=42)
+samp = work_filtered.dropna(subset=["discount_pct","sold","price_tier"]).sample(min(3000,len(work_filtered)), random_state=42)
 fig_sc = px.scatter(samp, x="discount_pct", y="sold", color="price_tier",
                     log_y=True, opacity=0.45, color_discrete_map=tcmap, template="plotly_white",
                     labels={"discount_pct":"% Chiết khấu","sold":"Số đã bán (log)","price_tier":"Phân khúc"},
                     title="Mối quan hệ Chiết khấu vs Lượng bán — màu theo price_tier (log Y, sample 3,000)",
                     hover_name="name" if "name" in samp.columns else None)
-fig_sc = add_trendline(fig_sc, samp["discount_pct"], samp["sold"], log_y=True)
+for tier, grp in samp.groupby("price_tier"):
+    if len(grp) < 10:
+        continue
+    xs = grp["discount_pct"].values.astype(float)
+    ys = np.log10(grp["sold"].clip(1).values.astype(float))
+    mask = np.isfinite(xs) & np.isfinite(ys)
+    if mask.sum() < 5:
+        continue
+    z = np.polyfit(xs[mask], ys[mask], 1)
+    xl = np.linspace(xs[mask].min(), xs[mask].max(), 80)
+    yl = 10 ** np.polyval(z, xl)
+    fig_sc.add_trace(go.Scatter(
+        x=xl, y=yl, mode="lines", name=f"Xu hướng {tier}",
+        line=dict(color=tcmap.get(tier, CB_GRAY), width=1.5, dash="dash"),
+        showlegend=True,
+    ))
 fig_sc.update_layout(plot_bgcolor="white", legend=dict(orientation="h", yanchor="bottom", y=1))
 st.plotly_chart(fig_sc, use_container_width=True)
-st.caption("Đường chấm đỏ = xu hướng OLS tổng thể. Log scale trục Y.")
+st.caption(
+    "Đường chấm = xu hướng OLS tổng thể. "
+    "Đường đứt = xu hướng riêng từng tier. "
+    "Premium/luxury: slope gần phẳng hoặc âm -> discount không tăng sold. "
+    "Log scale trục Y."
+)
 
 st.markdown("#### Tổng hợp ngưỡng discount tối ưu từng phân khúc")
 if not pivot.empty:
     opt = [{"Phân khúc":t,"Ngưỡng tối ưu":str(pivot.loc[t].idxmax()),
             "Trung vị sold cao nhất":int(pivot.loc[t].max())}
-           for t in t_ord if t in pivot.index]
+           for t in t_ord_filtered if t in pivot.index]
     st.dataframe(pd.DataFrame(opt), hide_index=True, use_container_width=True)
 
 conclusion_box("""
 <b>Nhận xét MT1:</b><br>
-• <b>premium (306)</b> và <b>luxury (220)</b> có trung vị sold cao nhất khi discount <b>0–10%</b> — counterintuitive: giảm giá ít bán tốt hơn, vì giảm sâu làm mất hình ảnh cao cấp.<br>
-• <b>mid (211)</b>: tối ưu tại 30–40% — cần mức giảm đủ lớn để khách cảm nhận giá trị.<br>
-• <b>mid-low (173)</b>: tối ưu 10–20% — nhạy cảm giá nhưng không cần discount quá sâu.<br>
-• <b>budget (133)</b>: tối ưu >50% nhưng trung vị vẫn thấp nhất — discount sâu giúp nhưng cạnh tranh quá cao.<br>
-• <b>Scatter OLS</b>: Đường xu hướng gần phẳng — discount một mình không đủ, price_tier mới là biến phân biệt chính.<br>
-• <b>Chiến lược:</b> Phân tầng discount theo tier thay vì áp đồng đều toàn kho.
+- <b>premium (306)</b> và <b>luxury (220)</b> có trung vị sold cao nhất khi discount <b>0–10%</b> — counterintuitive: giảm giá ít bán tốt hơn, vì giảm sâu làm mất hình ảnh cao cấp.<br>
+- <b>mid (211)</b>: tối ưu tại 30–40% — cần mức giảm đủ lớn để khách cảm nhận giá trị.<br>
+- <b>mid-low (173)</b>: tối ưu 10–20% — nhạy cảm giá nhưng không cần discount quá sâu.<br>
+- <b>budget (133)</b>: tối ưu >50% nhưng trung vị vẫn thấp nhất — discount sâu giúp nhưng cạnh tranh quá cao.<br>
+- <b>Scatter OLS</b>: Đường xu hướng gần phẳng — discount một mình không đủ, price_tier mới là biến phân biệt chính.<br>
+- <b>Chiến lược:</b> Phân tầng discount theo tier thay vì áp đồng đều toàn kho.
 """)
 st.markdown("---")
 
@@ -160,8 +225,27 @@ with col_b:
     st.dataframe(disp, hide_index=True, use_container_width=True)
 
 # Biểu đồ 2b: Grouped bar đặc trưng định giá
-st.subheader("Biểu đồ 2b: Grouped bar — Đặc trưng định giá Top 5 danh mục")
+st.subheader("Biểu đồ 2b: Grouped bar — Giá TB và Lượng bán TB (Top 5 danh mục)")
 
+top5_gb = top5[["sub_category","price_mean","sold_mean"]].melt(
+    id_vars="sub_category", var_name="Chỉ số", value_name="Giá trị"
+)
+top5_gb["Chỉ số"] = top5_gb["Chỉ số"].map({
+    "price_mean": "Giá TB (VND)",
+    "sold_mean": "Lượng bán TB"
+})
+fig_grouped = px.bar(
+    top5_gb, x="sub_category", y="Giá trị",
+    color="Chỉ số", barmode="group",
+    template="plotly_white",
+    labels={"sub_category": "Danh mục", "Giá trị": "Giá trị"},
+    title="Giá TB và Lượng bán TB — Top 5 danh mục"
+)
+fig_grouped.update_layout(xaxis_tickangle=-20)
+st.plotly_chart(fig_grouped, use_container_width=True)
+st.caption("Grouped bar: mỗi nhóm = 1 danh mục, 2 thanh = Giá TB và Lượng bán TB.")
+
+st.subheader("Biểu đồ 2c: Hai bar chart — Đặc trưng định giá Top 5 danh mục")
 col_c, col_d = st.columns(2)
 with col_c:
     fp = px.bar(top5, x="sub_category", y="price_mean", color="sub_category",
@@ -180,8 +264,8 @@ with col_d:
     fd.update_layout(xaxis_tickangle=-20, showlegend=False)
     st.plotly_chart(fd, use_container_width=True)
 
-# Biểu đồ 2c: Bubble chart 22 danh mục
-st.subheader("Biểu đồ 2c: Bubble chart — Giá TB x Sold TB (tất cả 22 danh mục)")
+# Biểu đồ 2d: Bubble chart 22 danh mục
+st.subheader("Biểu đồ 2d: Bubble chart — Giá TB x Sold TB (tất cả 22 danh mục)")
 
 fig_bub = px.scatter(
     cat_agg, x="price_mean", y="sold_mean", size="rev_B", color="rev_B",
@@ -189,20 +273,32 @@ fig_bub = px.scatter(
     color_continuous_scale="YlOrRd", log_x=True, log_y=True, size_max=60,
     template="plotly_white",
     labels={"price_mean":"Giá TB (VND, log)","sold_mean":"Lượng bán TB (log)","rev_B":"DT (Tỷ đồng)"},
-    title="22 danh mục: Giá TB x Lượng bán TB - kích thước ∝ doanh thu ước tính",
+    title="22 danh mục: Giá TB x Lượng bán TB - kích thước doanh thu ước tính",
 )
 fig_bub.update_traces(textposition="top center", textfont_size=8,
                       marker=dict(opacity=0.8, line=dict(width=1, color="white")))
-fig_bub.update_layout(plot_bgcolor="white")
+fig_bub.update_layout(
+    plot_bgcolor="white",
+    xaxis=dict(
+        title="Giá TB (VND)",
+        tickvals=[10000, 50000, 100000, 500000, 1000000],
+        ticktext=["10k", "50k", "100k", "500k", "1M"]
+    ),
+    yaxis=dict(
+        title="Lượng bán TB",
+        tickvals=[10, 50, 100, 500, 1000, 5000, 10000],
+        ticktext=["10", "50", "100", "500", "1k", "5k", "10k"]
+    )
+)
 st.plotly_chart(fig_bub, use_container_width=True)
 st.caption("Bong bóng lớn = doanh thu cao (YlOrRd: vàng→đỏ). Log scale cả 2 trục.")
 
 conclusion_box("""
 <b> Nhận xét MT2:</b><br>
-• <b>Top 5:</b> mặt nạ (700B) > sữa rửa mặt (438B) > kem dưỡng ẩm (374B) > kem chống nắng (336B) > dầu gội (325B).<br>
-• <b>mặt nạ dẫn đầu nhờ volume:</b> giá TB thấp nhất (68,822đ) nhưng sold TB cao nhất (5,280). Tách biệt hoàn toàn trên bubble chart.<br>
-• <b>kem dưỡng ẩm dẫn đầu nhờ giá cao:</b> 229,004đ TB (gấp 3.3x mặt nạ), dù sold TB chỉ 1,815.<br>
-• <b>Khoảng cách #1 vs #5:</b> 700B/325B = 2.15x — top 5 tương đối đồng đều, không có danh mục thống trị tuyệt đối.
+- <b>Top 5:</b> mặt nạ (700B) > sữa rửa mặt (438B) > kem dưỡng ẩm (374B) > kem chống nắng (336B) > dầu gội (325B).<br>
+- <b>mặt nạ dẫn đầu nhờ volume:</b> giá TB thấp nhất (68,822đ) nhưng sold TB cao nhất (5,280). Tách biệt hoàn toàn trên bubble chart.<br>
+- <b>kem dưỡng ẩm dẫn đầu nhờ giá cao:</b> 229,004đ TB (gấp 3.3x mặt nạ), dù sold TB chỉ 1,815.<br>
+- <b>Khoảng cách #1 vs #5:</b> 700B/325B = 2.15x — top 5 tương đối đồng đều, không có danh mục thống trị tuyệt đối.
 """)
 st.markdown("---")
 
@@ -232,11 +328,22 @@ fig_bcg.add_hline(y=mr, line_dash="dot", line_color=CB_GRAY, opacity=0.7,
 fig_bcg.add_vline(x=ms, line_dash="dot", line_color=CB_GRAY, opacity=0.7,
                   annotation_text="Median sold", annotation_position="top")
 xm, ym = cat_plot["sold_mean"].max(), cat_plot["rev_B"].max()
+quadrants = {"NGÔI SAO": 0, "SINH LỜI": 0, "PHỄU": 0, "CÂU HỎI": 0}
+for _, row in cat_plot.iterrows():
+    if row["sold_mean"] >= ms and row["rev_B"] >= mr:
+        quadrants["NGÔI SAO"] += 1
+    elif row["sold_mean"] < ms and row["rev_B"] >= mr:
+        quadrants["SINH LỜI"] += 1
+    elif row["sold_mean"] >= ms and row["rev_B"] < mr:
+        quadrants["PHỄU"] += 1
+    else:
+        quadrants["CÂU HỎI"] += 1
+
 for lbl, x, y, bg, bc in [
-    ("NGÔI SAO\n(nhiều+DT cao)", xm*.80, ym*.90, "rgba(255,215,0,.18)", CB_ORANGE),
-    ("SINH LỜI\n(ít+DT cao)", ms*.18, ym*.90, "rgba(86,180,233,.18)", CB_SKYBLUE),
-    ("PHỄU\n(nhiều+DT thấp)", xm*.80, mr*.22, "rgba(0,158,115,.18)", CB_GREEN),
-    ("CÂU HỎI\n(ít+DT thấp)", ms*.18, mr*.22, "rgba(153,153,153,.18)", CB_GRAY),
+    (f"NGÔI SAO\n(nhiều, DT cao): {quadrants['NGÔI SAO']} danh mục", xm*.80, ym*.90, "rgba(255,215,0,.18)", CB_ORANGE),
+    (f"SINH LỜI\n(ít, DT cao): {quadrants['SINH LỜI']} danh mục", ms*.18, ym*.90, "rgba(86,180,233,.18)", CB_SKYBLUE),
+    (f"PHỄU\n(nhiều, DT thấp): {quadrants['PHỄU']} danh mục", xm*.80, mr*(-0.5), "rgba(0,158,115,.18)", CB_GREEN),
+    (f"CÂU HỎI\n(ít, DT thấp): {quadrants['CÂU HỎI']} danh mục", ms*.18, mr*(-0.5), "rgba(153,153,153,.18)", CB_GRAY),
 ]:
     fig_bcg.add_annotation(x=x, y=y, text=lbl, showarrow=False,
                             bgcolor=bg, bordercolor=bc, borderwidth=1, font=dict(size=9))
@@ -274,11 +381,11 @@ st.caption("Lollipop = biến thể bar chart giảm ink-to-data ratio (nguyên 
 
 conclusion_box("""
 <b> Nhận xét MT7:</b><br>
-• <b>Ngôi sao — mặt nạ</b> (Composite=1.000): Outlier tuyệt đối. Chỉ có 2 danh mục vượt ngưỡng 0.5.<br>
-• <b>Ngôi sao — sữa rửa mặt</b> (0.614): Lựa chọn an toàn thứ 2 để gia nhập thị trường.<br>
-• <b>Sinh lời:</b> kem dưỡng ẩm, serum, toner — margin tốt, phù hợp người bán có sản phẩm chất lượng cao.<br>
-• <b>Phễu:</b> dầu gội, kem chống nắng, sữa tắm — volume cao, dùng để xây reviews và followers.<br>
-• <b>Hair care:</b> tất cả composite < 0.1 -> tránh nếu mới gia nhập.
+- <b>Ngôi sao — mặt nạ</b> (Composite=1.000): Outlier tuyệt đối. Chỉ có 2 danh mục vượt ngưỡng 0.5.<br>
+- <b>Ngôi sao — sữa rửa mặt</b> (0.614): Lựa chọn an toàn thứ 2 để gia nhập thị trường.<br>
+- <b>Sinh lời:</b> kem dưỡng ẩm, serum, toner — margin tốt, phù hợp người bán có sản phẩm chất lượng cao.<br>
+- <b>Phễu:</b> dầu gội, kem chống nắng, sữa tắm — volume cao, dùng để xây reviews và followers.<br>
+- <b>Hair care:</b> tất cả composite < 0.1 -> tránh nếu mới gia nhập.
 """)
 st.markdown("---")
 
@@ -302,18 +409,24 @@ def run_rf(df):
     le2 = LabelEncoder(); sub["cat_e"] = le2.fit_transform(sub["sub_category"])
     X = sub[["pt_e","cat_e","discount_pct","is_mall"]].values
     y = sub["target"].values
-    Xtr,Xte,ytr,yte = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
     clf = RandomForestClassifier(n_estimators=200, max_depth=8, random_state=42, n_jobs=-1)
-    clf.fit(Xtr, ytr); yp = clf.predict(Xte)
-    cm  = confusion_matrix(yte, yp)
-    acc = (yte==yp).mean()
-    fi  = pd.DataFrame({
+    clf.fit(Xtr, ytr)
+    cv_scores = cross_val_score(clf, X, y, cv=5, scoring="accuracy", n_jobs=-1)
+    yp = clf.predict(Xte)
+    cm = confusion_matrix(yte, yp)
+    acc = (yte == yp).mean()
+    fi = pd.DataFrame({
         "Feature": ["price_tier","sub_category","discount_pct","is_mall"],
         "Importance": clf.feature_importances_
     }).sort_values("Importance")
-    return cm, fi, acc, med
+    report_dict = classification_report(yte, yp, 
+                                        target_names=["Không bán chạy","Bán chạy"],
+                                        output_dict=True)
+    report_df = pd.DataFrame(report_dict).T.round(3)
+    return cm, fi, acc, med, cv_scores, report_df
 
-cm_rf, fi_rf, acc_rf, sold_med = run_rf(active)
+cm_rf, fi_rf, acc_rf, sold_med, cv_scores, report_df_rf = run_rf(active)
 
 col_r1, col_r2 = st.columns(2)
 with col_r1:
@@ -335,13 +448,21 @@ st.caption(f"Target: sold > {sold_med:.0f} (median). 200 trees, max_depth=8. "
            f"Màu cam = feature quan trọng nhất.")
 
 best_feat = fi_rf.iloc[-1]["Feature"]
-best_imp  = fi_rf.iloc[-1]["Importance"]
-disc_imp  = fi_rf[fi_rf["Feature"]=="discount_pct"]["Importance"].values[0]
+best_imp = fi_rf.iloc[-1]["Importance"]
+disc_imp = fi_rf[fi_rf["Feature"]=="discount_pct"]["Importance"].values[0]
+
+st.markdown("#### Báo cáo phân loại chi tiết")
+st.dataframe(report_df_rf.loc[["Không bán chạy","Bán chạy","macro avg","weighted avg"],
+                               ["precision","recall","f1-score","support"]],
+             use_container_width=True)
+st.caption(f"Baseline (random): 50%. Model: {acc_rf*100:.1f}% -> cải thiện ~{(acc_rf-0.5)*100:.1f} điểm phần trăm so với baseline.")
+st.markdown(f"**5-fold Cross-Validation Accuracy:** {cv_scores.mean()*100:.1f}% ± {cv_scores.std()*100:.1f}%")
 
 conclusion_box(f"""
 <b> Kết quả ML — Random Forest (Accuracy = {acc_rf*100:.1f}%):</b><br>
-• <b>Feature quan trọng nhất: {best_feat}</b> (importance = {best_imp:.3f}) — nhất quán với MT1 & 2: danh mục sản phẩm và phân khúc giá là yếu tố quyết định chính.<br>
-• <b>discount_pct</b> (importance = {disc_imp:.3f}) — vai trò vừa phải, xác nhận MT1: discount một mình không đủ.<br>
-• <b>is_mall</b> có importance thấp nhất — nhất quán với MT4 (22127418): Mall không phải yếu tố phân biệt chính.<br>
-• Accuracy {acc_rf*100:.1f}% trên bài toán 2 lớp cân bằng là khả quan; giới hạn: không có đặc trưng thời gian, marketing, hay hình ảnh sản phẩm.
+- <b>Feature quan trọng nhất: {best_feat}</b> (importance = {best_imp:.3f}) — nhất quán với MT1 & 2: danh mục sản phẩm và phân khúc giá là yếu tố quyết định chính.<br>
+- <b>discount_pct</b> (importance = {disc_imp:.3f}) — vai trò vừa phải, xác nhận MT1: discount một mình không đủ.<br>
+- <b>is_mall</b> có importance thấp nhất — nhất quán với MT4 (22127418): Mall không phải yếu tố phân biệt chính.<br>
+- <b>Kết nối với phân tích đơn biến:</b> sub_category importance ~ 0.60 xác nhận MT2 (danh mục quyết định doanh thu), discount_pct ~ 0.29 xác nhận MT1 (discount có vai trò nhưng không phải yếu tố chính), is_mall thấp nhất (0.036) xác nhận MT4 (Mall không phải yếu tố phân biệt).
+- Accuracy {acc_rf*100:.1f}% trên bài toán 2 lớp cân bằng là khả quan; giới hạn: không có đặc trưng thời gian, marketing, hay hình ảnh sản phẩm.
 """)

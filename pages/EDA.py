@@ -12,20 +12,19 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from utils.helpers import (
-    load_data, get_active, setup_sidebar,
+    load_data, get_active, inject_css, setup_sidebar,
     CB_ORANGE, CB_SKYBLUE, CB_BLUE, CB_VERMIL, CB_GRAY,
     SEQ_BLUES, DIV_RDBU,
 )
 
-st.set_page_config(page_title="EDA – Tổng quan", layout="wide")
-setup_sidebar()
+inject_css(); setup_sidebar()
 
 # ====== Load ======
 products, shops, reviews = load_data()
 active = get_active(products)
 
 # ====== Header ======
-st.title("Tổng quan dữ liệu – Shopee Mỹ phẩm VN")
+st.title("Mô tả dữ liệu – Shopee Mỹ phẩm VN")
 st.caption("Snapshot crawl 18–19/3/2026 | Yêu cầu §2.3.3: kích thước mẫu, cấu trúc, phân bố biến")
 
 # ====== KPIs ======
@@ -34,7 +33,8 @@ c1.metric("Sản phẩm", f"{len(products):,}")
 c2.metric("Cửa hàng", f"{len(shops):,}")
 c3.metric("Đánh giá", f"{len(reviews):,}")
 c4.metric("Danh mục con", f"{products['sub_category'].nunique()}")
-c5.metric("Tổng DT ước tính", f"{products['revenue_est'].sum()/1e12:.1f} nghìn tỷ đồng")
+rev_tong = products['revenue_est'].sum() / 1e9  # convert to tỷ
+c5.metric("Tổng DT ước tính", f"{rev_tong:,.0f} tỷ đồng")
 
 st.info("""
 **Vị trí code thu thập dữ liệu:**
@@ -178,11 +178,10 @@ with r2c2:
     st.plotly_chart(fig, use_container_width=True)
     st.caption(
         "**Nhận xét:** sold<->revenue r=0.79 (mạnh nhất). "
-        "shop_rating↔revenue r=−0.15 (nghịch chiều — counterintuitive)."
+        "shop_rating↔revenue r ~ -0.025 (nghịch chiều nhẹ — counterintuitive)."
     )
 
 st.markdown("---")
-
 # ========================
 # 3. Thống kê mô tả
 # ========================
@@ -206,5 +205,5 @@ st.markdown("""
 
 - **Tương quan sold <-> revenue (r=0.79):** Liên kết mạnh nhất trong toàn bộ ma trận — doanh thu ước tính được quyết định chủ yếu bởi lượng bán, không phải giá. Hàm ý: chiến lược volume-first hiệu quả hơn premium-only trên Shopee.
 
-- **Counterintuitive — shop_rating <-> revenue (r=–0.15):** Tương quan âm nhẹ giữa rating cửa hàng và doanh thu sản phẩm. Giải thích: các mega-shop bán hàng chục nghìn SP có thể có vài review tiêu cực làm giảm nhẹ điểm rating, trong khi shop nhỏ mới mở có ít review toàn 5 sao nhưng doanh thu thấp. Đây là trường hợp Simpson's Paradox — xem chi tiết tại trang Shops.
+- **Counterintuitive — shop_rating <-> revenue (r ~ -0.025):** Tương quan âm nhẹ giữa rating cửa hàng và doanh thu sản phẩm. Giải thích: các mega-shop bán hàng chục nghìn SP có thể có vài review tiêu cực làm giảm nhẹ điểm rating, trong khi shop nhỏ mới mở có ít review toàn 5 sao nhưng doanh thu thấp. Đây là trường hợp Simpson's Paradox — xem chi tiết tại trang Shops.
 """)

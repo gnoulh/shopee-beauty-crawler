@@ -1,402 +1,338 @@
-"""
-pages/04_Shops.py — Hiệu quả Cửa hàng & Chỉ số Lòng tin
-================================================================
-PHÂN CÔNG: 23127361
-  MT9 — K-Means phân cụm shop theo 4 tiêu chí lòng tin (k=4, Silhouette)
-  MT5 — Tương quan chỉ số shop -> revenue_est sản phẩm
-================================================================
-"""
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import silhouette_score
-import warnings; warnings.filterwarnings("ignore")
+from plotly.subplots import make_subplots
 
-from utils.helpers import (
-    inject_css, member_badge, conclusion_box,
-    load_data, setup_sidebar,
-    CB_ORANGE, CB_SKYBLUE, CB_GREEN, CB_BLUE, CB_VERMIL, CB_GRAY,
-)
+st.set_page_config(page_title="23127361", layout="wide")
 
-inject_css(); setup_sidebar()
+# Bảng màu Okabe-Ito - Đảm bảo độ tương phản cao và dễ nhìn cho người mù màu
+OKABE_ITO = [
+    '#0072B2', # Xanh dương
+    '#D55E00', # Đỏ cam (Vermilion)
+    '#009E73', # Xanh ngọc
+    '#E69F00', # Cam
+    '#56B4E9', # Xanh da trời
+    '#CC79A7', # Hồng tím
+    '#F0E442', # Vàng
+    '#000000'  # Đen (hoặc có thể dùng xám đậm)
+]
 
-products, shops, reviews = load_data()
-
-st.title("Hiệu quả Cửa hàng & Chỉ số Lòng tin")
-st.caption("shops.csv + products.csv - crawl 18/3/2026 - MSSV: 23127361")
-member_badge("23127361", "MT5 & 9")
-
-# CSS chung cho bảng 
-def render_styled_table(df):
-    """Hàm dùng chung để vẽ bảng có viền đen, header nền xám chữ giữa, data chữ trái"""
-    styles = [
-        dict(selector="table", props=[
-            ('width', '100%'),
-            ('border-collapse', 'collapse'),
-            ('font-family', 'sans-serif')
-        ]),
-        dict(selector="th", props=[
-            ('font-weight', 'bold'), 
-            ('text-align', 'center !important'),
-            ('background-color', '#f0f2f6'), 
-            ('border', '1px solid #000000'),
-            ('padding', '10px')
-        ]),
-        dict(selector="td", props=[
-            ('text-align', 'left !important'), 
-            ('border', '1px solid #000000'), 
-            ('padding', '10px')
-        ]) 
-    ]
+# Một số tùy chỉnh CSS để cải thiện giao diện
+st.markdown("""
+<style>
+    /* Tăng khoảng cách giữa các phần tử và làm nổi bật tiêu đề chính */
+    .block-container { padding-top: 2rem; padding-bottom: 2rem; }
     
-    html_table = df.style.hide(axis="index").set_table_styles(styles).to_html()
-    st.markdown(html_table, unsafe_allow_html=True)
+    /* Tùy chỉnh tiêu đề chính */
+    .main-title {
+        text-align: center;
+        color: #000080 !important;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    
+    /* Tùy chỉnh các KPI metrics */
+    div[data-testid="stMetric"] {
+        border: 2px solid #000080;
+        border-radius: 10px;
+        padding: 10px;
+        background-color: #F4F6F9;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    /* Căn giữa nhãn và giá trị trong KPI */
+    div[data-testid="stMetricLabel"] {
+        display: flex !important;
+        justify-content: center !important;
+        width: 100%;
+    }
 
-# SMART
-with st.expander("Tiêu chí SMART"):
-    smart_df = pd.DataFrame({
-        "Tiêu chí": [
-            "<b>Specific</b><br>(Cụ thể)", 
-            "<b>Measurable</b><br>(Đo lường được)", 
-            "<b>Achievable</b><br>(Khả thi)", 
-            "<b>Relevant</b><br>(Liên quan)", 
-            "<b>Time-bound</b><br>(Có thời hạn)"
-        ],
-        "MT9 – Phân cụm Shop": [
-            "Phân các shop thành các nhóm theo 4 tiêu chí (theo dõi, số đánh giá, điểm đánh giá, tốc độ phản hồi).",
-            "Đo bằng Silhouette score, tổng doanh thu ước tính và tổng lượt bán của từng nhóm shop.",
-            "K-Means trên tập dữ liệu đã làm sạch",
-            "Giúp đánh giá tác động của mức độ uy tín và chất lượng dịch vụ đến hiệu quả kinh doanh tổng thể của shop.",
-            "Snapshot 18/3/2026",
-        ],
-        "MT5 – Tương quan": [
-            "Tìm xem trong 3 yếu tố: Lượt theo dõi, Tốc độ phản hồi và Điểm sao, cái nào ảnh hưởng lớn nhất đến doanh thu của shop.",
-            "Hệ số tương quan Pearson — chỉ số có |r| lớn nhất = quan trọng nhất",
-            "Ma trận tương quan trên tập dữ liệu hiện có",
-            "Cung cấp cơ sở dữ liệu để nhà bán hàng biết nên ưu tiên cải thiện chỉ số nào nhất nhằm tối ưu hóa doanh thu.",
-            "Snapshot 18/3/2026",
-        ],
-    })
-    render_styled_table(smart_df)
+    /* Tùy chỉnh font và màu sắc cho nhãn KPI */
+    div[data-testid="stMetricLabel"] > div {
+        color: #000080;
+        font-weight: bold;
+        font-size: 15px;
+        text-align: center !important;
+        width: 100%;
+    }
+    
+    /* Căn giữa giá trị trong KPI và tăng kích thước font */
+    div[data-testid="stMetricValue"] {
+        display: flex !important;
+        justify-content: center !important;
+        width: 100%;
+    }
+    
+    /* Tùy chỉnh font và kích thước cho giá trị KPI */
+    div[data-testid="stMetricValue"] > div {
+        font-size: 28px;
+        font-weight: 900 !important; 
+        text-align: center !important;
+    }
+    
+    /* Tùy chỉnh tiêu đề các phần*/
+    .section-header {
+        color: #1f77b4;
+        border-bottom: 2px solid #1f77b4;
+        padding-bottom: 5px;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        font-size: 22px;
+        font-weight: bold;
+    }
 
-st.markdown("---")
+    /* CSS CẬP NHẬT: Màu xanh pastel & chữ xanh Navy cho bảng tổng hợp */
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
+        font-family: sans-serif;
+        color: #000080 !important; /* Toàn bộ chữ trong bảng màu Xanh Navy */
+    }
+    
+    /* Tiêu đề bảng với nền xanh pastel và chữ xanh Navy */
+    .custom-table th {
+        background-color: #D0E4F5 !important;
+        color: #000080 !important;         
+        font-weight: bold !important;     
+        text-align: center !important;
+        padding: 12px;
+        border-bottom: 2px solid #000080 !important;
+    }
+            
+    /* Các hàng của bảng với viền nhạt màu pastel và căn giữa nội dung */
+    .custom-table td {
+        text-align: center !important;
+        padding: 10px;
+        border-bottom: 1px solid #D0E4F5;
+    }
+            
+    /* Hiệu ứng hover với nền xanh pastel nhạt hơn để làm nổi bật hàng đang di chuột */
+    .custom-table tr:hover {
+        background-color: #F4F9FF !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# Preprocessing 
+# TIÊU ĐỀ CHÍNH
+st.markdown("<h1 class='main-title'>Chân Dung & Giá Trị Bất Động Sản</h1>", unsafe_allow_html=True)
+
+# Hàm tải và làm sạch dữ liệu, được cache để tối ưu hiệu suất
 @st.cache_data
-def prep_shop_data(products_df, shops_df):
-    # Tính tổng doanh thu ước tính của mỗi shop từ products_df
-    shop_revenue = products_df.groupby("shop_id")["revenue_est"].sum().reset_index()
+def load_data():
+    df = pd.read_csv("data/vietnam_housing_dataset_cleaned.csv")
+    df.columns = df.columns.str.strip()
     
-    # Chọn các cột cần thiết từ shops_df để merge với doanh thu
-    shop_cols = ["shop_id","shop_name","follower_count","rating_star",
-                 "rating_count","response_rate","total_sold","is_mall"]
-    avail = [c for c in shop_cols if c in shops_df.columns]
-    df = shops_df[avail].copy().merge(shop_revenue, on="shop_id", how="left")
+    # Chuyển đổi các cột số sang kiểu dữ liệu số, bỏ qua lỗi và thay thế bằng NaN nếu không thể chuyển đổi
+    numeric_cols = ['Price', 'Area', 'Access Road', 'Frontage', 'Bedrooms', 'Floors']
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            
+    df = df[(df['Price'] > 0) & (df['Area'] > 0)]
+    
+    # Chuẩn hóa giá trị của cột 'House direction' để đảm bảo tính nhất quán
+    direction_mapping = {
+        "1": "Đông", "1.0": "Đông", "Đông": "Đông",
+        "2": "Tây", "2.0": "Tây", "Tây": "Tây",
+        "3": "Nam", "3.0": "Nam", "Nam": "Nam",
+        "4": "Bắc", "4.0": "Bắc", "Bắc": "Bắc",
+        "5": "Đông Nam", "5.0": "Đông Nam", "Đông Nam": "Đông Nam",
+        "6": "Tây Bắc", "6.0": "Tây Bắc", "Tây Bắc": "Tây Bắc",
+        "7": "Tây Nam", "7.0": "Tây Nam", "Tây Nam": "Tây Nam",
+        "8": "Đông Bắc", "8.0": "Đông Bắc", "Đông Bắc": "Đông Bắc"
+    }
+    if 'House direction' in df.columns:
+        df['House direction'] = df['House direction'].astype(str).str.strip().map(direction_mapping)
 
-    # Điền NaN bằng 0 (shop không có sản phẩm đã bán hoặc doanh thu không xác định)
-    df["revenue_est"] = df["revenue_est"].fillna(0)
-    df["total_sold"] = df["total_sold"].fillna(0) if "total_sold" in df.columns else 0
+    # Phân loại đường vào thành các nhóm để phân tích sâu hơn
+    def categorize_road(r):
+        if pd.isna(r): return "Không xác định"
+        if r < 3: return "1. Hẻm nhỏ (<3m)"
+        elif r <= 5: return "2. Hẻm xe hơi (3-5m)"
+        elif r <= 10: return "3. Đường nhỏ/vừa (5-10m)"
+        else: return "4. Mặt tiền/Đường lớn (>10m)"
+        
+    if 'Access Road' in df.columns:
+        df['Road Category'] = df['Access Road'].apply(categorize_road)
+
     return df
 
-df = prep_shop_data(products, shops)
+try:
+    df = load_data()
 
-# MỤC TIÊU 9
-st.subheader("Mục tiêu 9 — K-Means phân cụm Cửa hàng theo Độ tin cậy và Hiệu quả")
+    if df.empty:
+        st.error("Dữ liệu trống. Vui lòng kiểm tra lại file CSV gốc.")
+        st.stop()
 
-# Chọn các chỉ số liên quan đến độ tin cậy và hiệu quả của shop để phân cụm
-features = ["follower_count","rating_count","rating_star","response_rate"]
-avail_f  = [f for f in features if f in df.columns]
+    # Chừa một khoảng trống để hiển thị các KPI tổng quan, sẽ được cập nhật sau khi áp dụng bộ lọc
+    kpi_placeholder = st.empty() 
 
-@st.cache_data
-def explore_kmeans(df_, features_):
-    # Chuẩn bị dữ liệu: điền NaN bằng 0, chuẩn hóa
-    df_c = df_.copy()
-    df_c[features_] = df_c[features_].fillna(0)
-    X_scaled = StandardScaler().fit_transform(df_c[features_])
+    # Thiết lập các slider để lọc dữ liệu theo giá và diện tích, giới hạn tối đa ở mức 95% để tránh ảnh hưởng của outliers
+    max_p_slider = df['Price'].quantile(0.95)
+    max_a_slider = df['Area'].quantile(0.95)
     
-    # Khảo sát Silhouette Score để chọn k tối ưu
-    sil_scores = {}
-    saved_labels = {}
-    
-    for k in range(2, 7):
-        km = KMeans(n_clusters=k, random_state=42, n_init=10)
-        labels = km.fit_predict(X_scaled)
-        sil_scores[k] = silhouette_score(X_scaled, labels)
-        saved_labels[k] = labels
+    col_filter1, col_filter2 = st.columns(2)
+    with col_filter1:
+        price_range = st.slider("Khoảng giá (Tỷ VND):", float(df['Price'].min()), float(df['Price'].max()), (0.0, float(max_p_slider)))
+    with col_filter2:
+        area_range = st.slider("Diện tích (m²):", float(df['Area'].min()), float(df['Area'].max()), (0.0, float(max_a_slider)))
+
+    df_filtered = df[
+        (df['Price'] >= price_range[0]) & (df['Price'] <= price_range[1]) &
+        (df['Area'] >= area_range[0]) & (df['Area'] <= area_range[1])
+    ].copy()
+
+    # Thay đổi các KPI tổng quan dựa trên dữ liệu đã lọc
+    with kpi_placeholder.container():
+        kpi1, kpi2, kpi3 = st.columns(3)
+        kpi1.metric("TỔNG SỐ BĐS", f"{len(df_filtered):,}")
+        kpi2.metric("GIÁ TRUNG BÌNH", f"{df_filtered['Price'].mean():.2f} Tỷ" if not df_filtered.empty else "0")
+        kpi3.metric("DIỆN TÍCH TRUNG BÌNH", f"{df_filtered['Area'].mean():.1f} m²" if not df_filtered.empty else "0")
         
-    return df_c, sil_scores, saved_labels
+        st.write("") 
+        
+        # Thêm phần mô tả mục tiêu phân tích
+        with st.expander("Mục tiêu phân tích"):
+            st.markdown("""
+            - **Mục tiêu 1:** Phân tích giá trị của **Đường vào**, **Mặt tiền** và **Phong thủy** ảnh hưởng đến giá Bất động sản.
+            - **Mục tiêu 2:** Phác họa **"Chân dung"** bất động sản điển hình theo từng phân khúc ngân sách.
+            """)
 
-df_c, sil_scores, all_labels = explore_kmeans(df, avail_f)
-
-# Vẽ biểu đồ Silhouette Score để chọn k tối ưu
-st.markdown("#### Biểu đồ 1a: Khảo sát Silhouette Score để tìm k tối ưu")
-fig_sil = px.line(x=list(sil_scores.keys()), y=list(sil_scores.values()),
-                  markers=True, labels={"x":"k","y":"Silhouette Score"},
-                  title="Silhouette Score theo số cụm k",
-                  color_discrete_sequence=[CB_BLUE])
-fig_sil.update_layout(plot_bgcolor="white", margin=dict(t=50,l=10,r=10,b=10))
-st.plotly_chart(fig_sil, use_container_width=True)
-
-# Chọn k dựa trên biểu đồ Silhouette Score
-selected_k = max(sil_scores, key=sil_scores.get)
-st.success(f"**Kết luận:** Chọn k={selected_k} vì có Silhouette Score cao nhất ({sil_scores[selected_k]:.3f}), cho thấy phân cụm rõ ràng nhất.")
-
-# Lấy nhãn của k đã chọn
-df_c["Cluster"] = all_labels[selected_k]
-
-# Tạo expender để hiển thị đặc trưng trung bình của từng nhóm và cơ sở đặt tên nhóm
-with st.expander(f"Giải thích tên gọi của các nhóm", expanded=False):
-    # Bảng số liệu trung bình
-    st.markdown("**1. Thống kê chỉ số trung bình của từng nhóm:**")
-
-    # Tính trung bình các chỉ số theo nhóm
-    summary = df_c.groupby("Cluster")[avail_f].mean().reset_index()
-    disp = summary.rename(columns={
-        "follower_count":"TB Followers",
-        "rating_count":"TB Lượt đánh giá",
-        "rating_star":"TB Điểm sao",
-        "response_rate":"TB Tốc độ phản hồi",
-    })
-    render_styled_table(disp)
+    # Mục tiêu 1 
+    # Hàng 1: Đường vào & Mặt tiền
+    row1_col1, row1_col2 = st.columns(2)
     
-    # Đặt tên nhóm dựa trên đặc điểm trung bình
-    st.markdown("**2. Cơ sở nhận diện và Đặt tên nhóm:**")
-    naming_df = pd.DataFrame({
-        "Tên Nhóm": [
-            "Shop Dẫn Đầu (cluster 1)", 
-            "Shop Uy Tín (cluster 0)", 
-            "Shop Mới / Ngủ đông (cluster 2)"
-        ],
-        "Đặc điểm nhận diện": [
-            "Dẫn đầu về số lượng followers và lượt đánh giá, phản hồi nhanh (> 93%)",
-            "Điểm sao cao nhất (4.87), số lượng followers và đánh giá trung bình, phản hồi tốt (> 83%)",
-            "Chỉ số chạm đáy (0 sao, 0 đánh giá, phản hồi thấp (< 50%))"
-        ],
-        "Đánh giá": [
-            "Các thương hiệu lớn dẫn dắt thị trường",
-            "Shop tầm trung hoạt động cực kỳ hiệu quả, giữ chân khách tốt",
-            "Shop mới lập chưa có đơn hoặc đã ngưng hoạt động"
-        ]
-    })
-    render_styled_table(naming_df)
+    with row1_col1:
+        if 'Road Category' in df_filtered.columns:
+            df_road = df_filtered[df_filtered['Road Category'] != "Không xác định"].groupby('Road Category')['Price'].mean().reset_index()
+            df_road = df_road.sort_values('Road Category') 
+            
+            fig_road = px.bar(
+                df_road, x='Road Category', y='Price', 
+                color='Road Category', 
+                title="Giá trung bình theo Cấp độ Đường vào",
+                labels={'Road Category': 'Loại đường', 'Price': 'Giá TB (Tỷ VND)'},
+                template='plotly_white', height=350,
+                color_discrete_sequence=OKABE_ITO
+            )
+            fig_road.update_xaxes(tickvals=df_road['Road Category'], ticktext=[x[3:] for x in df_road['Road Category']])
+            fig_road.update_layout(showlegend=False, margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig_road, use_container_width=True)
 
-# Áp tên nhóm vào DataFrame gốc để vẽ biểu đồ
-cluster_name_map = {
-    1: "Shop Dẫn Đầu",
-    0: "Shop Uy Tín",
-    2: "Shop Mới / Ngủ Đông"
-}
-df_c["Nhóm"] = df_c["Cluster"].map(cluster_name_map)
+    with row1_col2:
+        if 'Frontage' in df_filtered.columns:
+            fig_frontage = px.scatter(
+                df_filtered, x='Frontage', y='Price', opacity=0.5,
+                title="Tương quan giữa Mặt tiền (m) và Giá (Tỷ)",
+                labels={'Frontage': 'Độ rộng mặt tiền (m)', 'Price': 'Giá (Tỷ VND)'},
+                color_discrete_sequence=[OKABE_ITO[1]], # Lấy màu đỏ cam làm điểm nhấn
+                template='plotly_white', height=350
+            )
+            fig_frontage.update_layout(xaxis_range=[0, df_filtered['Frontage'].quantile(0.98)], margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig_frontage, use_container_width=True)
 
-# Cập nhật bảng màu Okabe-Ito cho các nhóm để đảm bảo trực quan và thân thiện với người mù màu
-colorblind_palette = {
-    "Shop Dẫn Đầu": "#D55E00", 
-    "Shop Uy Tín":  "#0072B2",
-    "Shop Mới / Ngủ Đông": "#999999"
-}
-
-st.markdown("#### Biểu đồ 1b: Phân bố số lượng shop, doanh thu và lượt bán")
-
-st.markdown("---")
-# Hiển thị bộ lọc để người dùng có thể chọn trạng thái shop và khoảng doanh thu ước tính
-col_f1, col_f2 = st.columns([1.2, 1]) # Chỉnh lại tỷ lệ cột cho đẹp
-
-# Bộ lọc quy mô shop theo lượng follower
-with col_f1:
-    follower_filter = st.radio(
-        "**Quy mô Shop (Theo lượng Follower):**", 
-        options=["Tất cả", "Shop Nhỏ (< 1k)", "Tầm Trung (1k - 10k)", "Khổng Lồ (> 10k)"], 
-        horizontal=True,
-        key="follower_filter_unique"
-    )
-
-# Bộ lọc khoảng doanh thu ước tính
-with col_f2:
-    # Đổi đơn vị doanh thu sang triệu để slider dễ điều chỉnh hơn
-    min_rev = float(df_c["revenue_est"].min()) / 1_000_000
-    max_rev = float(df_c["revenue_est"].max()) / 1_000_000
+    # Hàng 2: Phong thủy
+    row2_col1, row2_col2 = st.columns(2)
     
-    if max_rev > min_rev:
-        selected_rev_trieu = st.slider(
-            "Khoảng Doanh Thu (VND):",
-            min_value=min_rev, 
-            max_value=max_rev, 
-            value=(min_rev, max_rev), 
-            format="%d Triệu", # Hiển thị số trên slider với đơn vị triệu
-            key="revenue_slider_unique"
+    with row2_col1:
+        if 'House direction' in df_filtered.columns:
+            df_dir = df_filtered['House direction'].dropna().value_counts().reset_index()
+            df_dir.columns = ['Direction', 'Count']
+            
+            # Tạo biểu đồ tròn để thể hiện thị phần phân bổ theo hướng nhà
+            fig_pie_dir = px.pie(
+                df_dir, names='Direction', values='Count',
+                title="Thị phần phân bổ theo Hướng nhà",
+                color='Direction',
+                template='plotly_white', height=350,
+                color_discrete_sequence=OKABE_ITO
+            )
+            fig_pie_dir.update_traces(textposition='inside', textinfo='percent+label')
+            fig_pie_dir.update_layout(showlegend=False, margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig_pie_dir, use_container_width=True)
+
+    with row2_col2:
+        if 'House direction' in df_filtered.columns:
+            df_dir_price = df_filtered.dropna(subset=['House direction']).groupby('House direction')['Price'].mean().reset_index().sort_values('Price')
+            
+            fig_dir_price = px.bar(
+                df_dir_price, x='Price', y='House direction', 
+                color='House direction', 
+                orientation='h',
+                title="Xếp hạng Giá trung bình theo Hướng nhà",
+                labels={'Price': 'Giá TB (Tỷ VND)', 'House direction': 'Hướng'},
+                color_discrete_sequence=OKABE_ITO,
+                template='plotly_white', height=350
+            )
+            fig_dir_price.update_layout(showlegend=False, margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig_dir_price, use_container_width=True)
+
+    st.markdown("---")
+
+    # Mục tiêu 2
+    if not df_filtered.empty:
+        bins = [0, 3, 5, 10, float('inf')]
+        labels = ['Dưới 3 tỷ', '3 - 5 tỷ', '5 - 10 tỷ', 'Trên 10 tỷ']
+        df_filtered['Phân khúc'] = pd.cut(df_filtered['Price'], bins=bins, labels=labels)
+        
+        segment_summary = df_filtered.groupby('Phân khúc', observed=False).agg(
+            Số_lượng=('Price', 'count'),
+            DT_TB=('Area', 'mean'),
+            PN_TB=('Bedrooms', 'mean'),
+            Tầng_TB=('Floors', 'mean')
+        ).reset_index()
+
+        table_display = segment_summary.copy()
+        table_display['DT_TB'] = table_display['DT_TB'].round(1)
+        table_display['PN_TB'] = table_display['PN_TB'].round(1)
+        table_display['Tầng_TB'] = table_display['Tầng_TB'].round(1)
+        table_display.columns = ['Phân khúc ngân sách', 'Số lượng BĐS', 'Diện tích TB (m²)', 'Phòng ngủ TB', 'Số tầng TB']
+
+        with st.expander("Bảng tổng hợp các tiện ích trung bình theo phân khúc"):
+            html_table = table_display.to_html(index=False, classes='custom-table')
+            st.markdown(html_table, unsafe_allow_html=True)
+
+        st.markdown("##### Quy mô (Diện tích, Phòng, Tầng) theo mức giá")
+        fig_line = make_subplots(specs=[[{"secondary_y": True}]])
+        
+        fig_line.add_trace(
+            go.Scatter(x=segment_summary['Phân khúc'], y=segment_summary['DT_TB'], 
+                       name="Diện tích TB (m²)", mode='lines+markers', 
+                       line=dict(color=OKABE_ITO[0], width=3), marker=dict(size=8)), 
+            secondary_y=False,
         )
+        fig_line.add_trace(
+            go.Scatter(x=segment_summary['Phân khúc'], y=segment_summary['PN_TB'], 
+                       name="Phòng ngủ TB", mode='lines+markers', 
+                       line=dict(color=OKABE_ITO[1], width=3), marker=dict(size=8)), 
+            secondary_y=True,
+        )
+        fig_line.add_trace(
+            go.Scatter(x=segment_summary['Phân khúc'], y=segment_summary['Tầng_TB'], 
+                       name="Số tầng TB", mode='lines+markers', 
+                       line=dict(color=OKABE_ITO[2], width=3), marker=dict(size=8)), 
+            secondary_y=True,
+        )
+
+        fig_line.update_layout(
+            template='plotly_white',
+            hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            height=450,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        fig_line.update_yaxes(title_text="<b>Diện tích (m²)</b>", secondary_y=False, color=OKABE_ITO[0])
+        fig_line.update_yaxes(title_text="<b>Số lượng (Phòng/Tầng)</b>", secondary_y=True)
         
-        # Chuyển lại giá trị đã chọn về đơn vị VND gốc để lọc dữ liệu
-        selected_rev = (selected_rev_trieu[0] * 1_000_000, selected_rev_trieu[1] * 1_000_000)
-    else:
-        selected_rev = (min_rev * 1_000_000, max_rev * 1_000_000)
+        st.plotly_chart(fig_line, use_container_width=True)
 
-filtered_df = df_c.copy()
+except Exception as e:
+    st.error(f"Lỗi hệ thống: {e}")
 
-# Xử lý logic lọc Follower
-if follower_filter == "Shop Nhỏ (< 1k)":
-    filtered_df = filtered_df[filtered_df["follower_count"] < 1000]
-elif follower_filter == "Tầm Trung (1k - 10k)":
-    filtered_df = filtered_df[(filtered_df["follower_count"] >= 1000) & (filtered_df["follower_count"] <= 10000)]
-elif follower_filter == "Khổng Lồ (> 10k)":
-    filtered_df = filtered_df[filtered_df["follower_count"] > 10000]
-
-# Xử lý logic lọc Doanh thu
-filtered_df = filtered_df[(filtered_df["revenue_est"] >= selected_rev[0]) & (filtered_df["revenue_est"] <= selected_rev[1])]
-st.markdown("---")
-
-# Tính tổng doanh thu và lượt bán theo nhóm để vẽ biểu đồ
-revenue_sales = filtered_df.groupby("Nhóm")[["revenue_est","total_sold"]].sum().reset_index()
-shop_counts = filtered_df["Nhóm"].value_counts().reset_index()
-shop_counts.columns = ["Nhóm","Số lượng Shop"]
-
-# Hiển thị biểu đồ phân bố số lượng shop, doanh thu và lượt bán theo nhóm
-col1, col2, col3 = st.columns(3)
-
-chart_layout = dict(plot_bgcolor="rgba(0,0,0,0)", showlegend=False,
-                    margin=dict(t=50,l=10,r=10,b=10),
-                    font=dict(family="Arial",size=13,color="#333"))
-
-# Biểu đồ 1b.1: Tỷ trọng số lượng shop theo nhóm
-with col1:
-    fig = px.pie(shop_counts, names="Nhóm", values="Số lượng Shop",
-                 color="Nhóm", color_discrete_map=colorblind_palette,
-                 title="Tỷ trọng số lượng Shop", hole=0.4)
-    fig.update_traces(textinfo="percent", textfont_size=12)
-    fig.update_layout(showlegend=True,
-                      legend=dict(orientation="h",yanchor="bottom",y=-0.2,xanchor="center",x=0.5),
-                      margin=dict(t=50,l=10,r=10,b=10))
-    st.plotly_chart(fig, use_container_width=True)
-
-# Biểu đồ 1b.2: Tổng doanh thu ước tính theo nhóm
-with col2:
-    fig = px.bar(revenue_sales, x="Nhóm", y="revenue_est", color="Nhóm",
-                 color_discrete_map=colorblind_palette,
-                 title="Tổng Doanh thu Ước tính (VND)",
-                 labels={"revenue_est":"Doanh thu (VND)","Nhóm":""}, text_auto=".2s")
-    fig.update_layout(**chart_layout)
-    fig.update_yaxes(showgrid=True, gridcolor="#E5E5E5")
-    fig.update_traces(textposition="outside")
-    st.plotly_chart(fig, use_container_width=True)
-
-# Biểu đồ 1b.3: Tổng lượt bán theo nhóm
-with col3:
-    if "total_sold" in revenue_sales.columns:
-        fig = px.bar(revenue_sales, x="Nhóm", y="total_sold", color="Nhóm",
-                     color_discrete_map=colorblind_palette,
-                     title="Tổng Lượt Bán",
-                     labels={"total_sold":"Lượt bán","Nhóm":""}, text_auto=".2s")
-        fig.update_layout(**chart_layout)
-        fig.update_yaxes(showgrid=True, gridcolor="#E5E5E5")
-        fig.update_traces(textposition="outside")
-        st.plotly_chart(fig, use_container_width=True)
-
-# Insights và chiến lược đề xuất
-with st.expander("Phân tích Insight: Tại sao có sự chênh lệch về hiệu quả kinh doanh?"):
-    st.markdown("""
-        #### <b>Các phát hiện từ kết quả phân cụm</b>
-        
-        1. **Nghịch lý giữa Số lượng và Doanh thu (Quy tắc Pareto):**
-            * Nhìn vào **Biểu đồ tròn**, nhóm **Shop Dẫn Đầu** chỉ chiếm một tỷ lệ rất nhỏ về số lượng. Tuy nhiên, trên **Biểu đồ Doanh thu**, nhóm này lại nắm giữ "miếng bánh" khổng lồ, chi phối phần lớn dòng tiền của toàn ngành mỹ phẩm.
-            * **Insight:** Thị trường mỹ phẩm Shopee đang bị dẫn dắt bởi một số ít các "ông lớn". Quyền lực và doanh số tập trung cực mạnh vào nhóm tinh hoa này thay vì chia đều cho số đông.
-
-        2. **Sự đồng nhất giữa Doanh thu và Lượt bán:**
-            * Cả hai biểu đồ cột đều cho thấy xu hướng tương đồng: Nhóm có doanh thu cao nhất cũng chính là nhóm có tổng lượt bán khủng nhất. 
-            * **Insight:** Điều này cho thấy các **Shop Dẫn Đầu** không chỉ bán các sản phẩm giá trị cao mà còn có khả năng "chốt đơn" hàng loạt một cách đều đặn.
-
-        3. **Sức mạnh của số đông:**
-            * Biểu đồ tròn cho thấy nhóm **Shop Uy Tín** chiếm số lượng áp đảo. Chính vì vậy mà **tổng doanh thu và lượt bán** của cả nhóm này cộng lại cực kỳ đáng nể.
-            * **Insight:** Đây là phân khúc khách hàng dễ tiếp cận nhất. Tuy nhiên, vì tổng doanh thu lớn này bị chia nhỏ cho hàng nghìn shop nên hiệu quả kinh doanh trên mỗi đầu shop sẽ không thể cao bằng nhóm Dẫn Đầu.
-                    
-        4. **Shop Mới / Ngủ Đông:**
-            * Tuy nhóm này chiếm số lượng không đáng kể nhưng **Lượt bán hoàn toàn bằng 0**. 
-            * **Insight:** Đây là trạng thái "tê liệt doanh số" do thiếu hụt lòng tin trầm trọng. Khi **Lượt bán = 0 dẫn đến Lượt đánh giá = 0**, khách hàng sẽ không bao giờ là người "thử nghiệm" đầu tiên. Nếu không có chiến dịch mồi đơn, các shop này sẽ mãi bị kẹt trong vòng lặp: **Không có lượt bán -> Không có khách mua -> Không có doanh thu.**
-            * **Về việc không có lượt bán mà có doanh thu, có thể do một vài lý do sau:**
-                * **Độ trễ hệ thống (Hàng Pre-order/Đang giao):** Đơn hàng đã được thanh toán (tạo ra dòng tiền) nhưng chưa giao thành công nên Shopee chưa cộng vào tổng Lượt bán.
-                * **Hệ quả của việc "Buff đơn" ảo:** Shop gian lận bị Shopee phát hiện và phạt "xóa trắng" lượt bán về 0, nhưng công cụ thu thập dữ liệu (Scraper) vẫn lưu lại được mức doanh thu cũ.
-        ---
-
-        #### <b>Chiến lược đề xuất</b>
-
-        1. **Giai đoạn "Phá băng" (Dành cho Shop Mới):**
-            * **Mục tiêu:** Phá vỡ "Bẫy số 0" về lượt bán và lượt đánh giá.
-            * **Hành động:** Tập trung mọi nguồn lực để có **10-20 đơn hàng đầu tiên**. Có thể chấp nhận lỗ vốn thông qua các chương trình "Voucher hoàn xu" hoặc "Mua kèm deal sốc" để đổi lấy lượt mua và đánh giá. Không có đánh giá, shop sẽ mãi "vô hình" dù sản phẩm có tốt đến đâu.
-
-        2. **Giai đoạn "Vượt rào" (Dành cho Shop Uy Tín):**
-            * **Mục tiêu:** Thoát khỏi sự cạnh tranh để tiến lên nhóm Dẫn Đầu.
-            * **Hành động:** Tối ưu hóa **Tỷ lệ phản hồi (> 90%)** - Dữ liệu cho thấy đây là ranh giới giữa chuyên nghiệp và nghiệp dư.
-        """, unsafe_allow_html=True)
-        
-st.markdown("---")
-
-# MỤC TIÊU 5
-st.subheader("Mục tiêu 5 — Tương quan Chỉ số Cửa hàng -> Doanh thu Sản phẩm")
-
-# Chọn các chỉ số liên quan đến độ tin cậy và hiệu quả của shop để phân tích tương quan với doanh thu
-corr_features = [f for f in ["follower_count","response_rate","rating_star","revenue_est"]
-                 if f in df.columns]
-corr_matrix = df[corr_features].corr()
-
-# Đặt lại tên cột để dễ hiểu hơn trên biểu đồ
-labels_map = {
-    "follower_count":"Lượt theo dõi",
-    "response_rate":"Tỷ lệ phản hồi",
-    "rating_star":"Điểm sao",
-    "revenue_est":"Doanh thu"
-}
-
-# Vẽ ma trận tương quan với Plotly Express
-fig_corr = px.imshow(
-    corr_matrix,
-    labels=dict(color="Hệ số Pearson"),
-    x=[labels_map.get(c,c) for c in corr_matrix.columns],
-    y=[labels_map.get(c,c) for c in corr_matrix.index],
-    text_auto=".3f",
-    color_continuous_scale="RdBu_r",
-    range_color=[-1,1],
-    title="Ma trận tương quan Pearson — Chỉ số cửa hàng × Doanh thu",
-)
-fig_corr.update_layout(plot_bgcolor="rgba(0,0,0,0)", font=dict(family="Arial",size=13),
-                       margin=dict(t=80,l=10,r=10,b=10), height=460)
-st.plotly_chart(fig_corr, use_container_width=True)
-
-revenue_corrs = corr_matrix["revenue_est"].drop("revenue_est") if "revenue_est" in corr_matrix else pd.Series()
-if not revenue_corrs.empty:
-    strongest = revenue_corrs.abs().idxmax()
-    strongest_r = revenue_corrs[strongest]
-
-# Insights và chiến lược đề xuất
-with st.expander("Phân tích Insight: Yếu tố nào ảnh hưởng mạnh nhất đến doanh thu?"):
-    st.markdown("#### Các phát hiện quan trọng:")
-        
-    st.markdown(f"""
-    1. **Lượt theo dõi là yếu tố có tương quan mạnh nhất với doanh thu:** 
-        * Với hệ số tương quan **r = 0.216**, Lượt theo dõi là yếu tố có liên kết chặt chẽ nhất với sự tăng trưởng doanh thu. 
-        * **Insight:** Trên Shopee, tệp khách hàng trung thành (followers) chính là nguồn doanh thu bền vững nhất. Shop có càng nhiều người theo dõi thì xác suất phát sinh đơn hàng càng cao.
-
-    2. **Sự nghịch lý của Điểm đánh giá:**
-       * Hệ số tương quan giữa Sao và Doanh thu đang ở mức thấp (âm nhẹ). 
-        * **Insight:** Điều này không có nghĩa là Sao không quan trọng, mà thực tế cho thấy các Shop có doanh thu cực lớn thường bán lượng hàng khổng lồ, dẫn đến việc khó tránh khỏi một vài đánh giá tiêu cực, làm kéo nhẹ điểm trung bình xuống so với các shop nhỏ mới mở (ít khách nhưng 5 sao tuyệt đối).
-
-    3. **Mối quan hệ giữa Chăm sóc khách hàng và Lòng tin:**
-       * Tỷ lệ phản hồi có tương quan thuận với Doanh thu nhưng không quá mạnh.
-        * **Insight:** Phản hồi nhanh giúp cải thiện tỷ lệ chuyển đổi đơn hàng. Tuy nhiên để đẩy tổng doanh thu lên quy mô lớn, Shop vẫn cần ưu tiên Marketing để tăng lượt theo dõi (Followers).            
-    ---
-                
-    #### Lời khuyên hành động:
-    * **Ưu tiên số 1:** Đầu tư vào các chiến dịch tăng Follower (như Flash Sale, Game, Voucher Follow) vì đây là con đường trực tiếp dẫn đến doanh thu.
-    * **Ưu tiên số 2:** Có thể duy trì Tỷ lệ phản hồi cao để tăng doanh thu. Tuy nhiên, trả lời nhanh chủ yếu chỉ giúp giữ khách nhưng sẽ ít thu hút khách mới nếu thiếu đi Marketing.
-
-    **Kết luận hành động:** Thay vì dàn trải nguồn lực, nhà bán hàng nên ưu tiên nguồn lực theo thứ tự: **Xây dựng Đánh giá (để có lòng tin) ➔ Tăng tốc độ Phản hồi (để chuyên nghiệp) ➔ Tích lũy Follower (để bùng nổ doanh thu)**.
-""")
-
-# Kết thúc dashboard
 st.markdown("---")
 st.caption("Dashboard được thực hiện bởi thành viên Thạch Ngọc Hân - MSSV: 23127361")

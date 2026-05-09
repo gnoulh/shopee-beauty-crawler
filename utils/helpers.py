@@ -38,17 +38,11 @@ STOPS = {
 }
 
 # ====================== Data loader ================================================─
+# ── Load data ────────────────────────────────────────────
 @st.cache_data
-def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    Load products.csv, shops.csv, reviews.csv
-    Cached — chỉ đọc file 1 lần mỗi session.
-    """
-    products = pd.read_csv("data/products.csv")
-    shops = pd.read_csv("data/shops.csv")
-    reviews = pd.read_csv("data/reviews.csv")
-    return products, shops, reviews
-
+def load_data():
+    df = pd.read_csv("data/vietnam_housing_dataset_cleaned.csv")
+    return df
 
 def get_active(products: pd.DataFrame) -> pd.DataFrame:
     """Lọc sản phẩm có sold > 0 — dùng cho mọi phân tích doanh thu."""

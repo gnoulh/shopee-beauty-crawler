@@ -1,209 +1,288 @@
-"""
-pages/EDA.py — Tổng quan dữ liệu (EDA)
-Yêu cầu: "Phân tích tổng quan: kích thước mẫu, cấu trúc dữ liệu, phân bố các biến."
-"""
-
-import pandas as pd
-import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
-
 import streamlit as st
+import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 
-from utils.helpers import (
-    load_data, get_active, inject_css, setup_sidebar,
-    CB_ORANGE, CB_SKYBLUE, CB_BLUE, CB_VERMIL, CB_GRAY,
-    SEQ_BLUES, DIV_RDBU,
+# ── Load data ────────────────────────────────────────────
+@st.cache_data
+def load_data():
+    df = pd.read_csv("data/vietnam_housing_dataset.csv")
+    return df
+
+
+df = load_data()
+
+# ── Data Dictionary ──────────────────────────────────────
+DATA_DICT = {
+    "Address": (
+        "Địa chỉ",
+        "String",
+        "Địa chỉ đầy đủ: tên dự án / đường, phường/xã, quận/huyện, tỉnh/thành phố",
+    ),
+    "Area": ("Diện tích", "Decimal", "Tổng diện tích bất động sản (m²)"),
+    "Frontage": ("Mặt tiền", "Decimal", "Chiều rộng mặt tiền (m)"),
+    "Access Road": ("Đường vào", "Decimal", "Độ rộng đường dẫn vào bất động sản (m)"),
+    "House direction": (
+        "Hướng nhà",
+        "String",
+        "Hướng chính mặt trước ngôi nhà quay về (Đông, Tây, Nam, Bắc,...)",
+    ),
+    "Balcony direction": ("Hướng ban công", "String", "Hướng ban công quay về"),
+    "Floors": ("Số tầng", "Integer", "Tổng số tầng của bất động sản"),
+    "Bedrooms": ("Số phòng ngủ", "Integer", "Số lượng phòng ngủ"),
+    "Bathrooms": ("Số phòng tắm", "Integer", "Số lượng phòng tắm / nhà vệ sinh"),
+    "Legal status": (
+        "Tình trạng pháp lý",
+        "String",
+        "Trạng thái pháp lý: sổ đỏ/hồng, hợp đồng mua bán,...",
+    ),
+    "Furniture state": (
+        "Tình trạng nội thất",
+        "String",
+        "Mức độ nội thất: Full (đầy đủ), Basic (cơ bản), trống",
+    ),
+    "Price": ("Giá bán", "Decimal", "Giá bán bất động sản (tỷ đồng VND)"),
+}
+
+st.title("📊 Mô tả dữ liệu gốc")
+st.caption("Dữ liệu trước khi xử lý — hiển thị nguyên trạng để đánh giá chất lượng")
+st.markdown("---")
+
+# ── 1. Tổng quan ─────────────────────────────────────────
+st.subheader("1. Tổng quan")
+
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("Số dòng", f"{df.shape[0]:,}")
+c2.metric("Số cột", df.shape[1])
+c3.metric("Missing cells", f"{df.isnull().sum().sum():,}")
+c4.metric("Tỷ lệ missing", f"{df.isnull().sum().sum() / df.size * 100:.1f}%")
+
+st.markdown("**Dữ liệu mẫu (10 dòng đầu)**")
+st.dataframe(df.head(10), use_container_width=True)
+
+st.markdown("---")
+
+# ── 2. Data Dictionary ───────────────────────────────────
+st.subheader("2. Mô tả các cột (Data Dictionary)")
+st.markdown("Ý nghĩa, kiểu dữ liệu và thống kê nhanh của từng cột trong dataset gốc.")
+
+dict_rows = []
+for col in df.columns:
+    viet_name, dtype_label, description = DATA_DICT.get(
+        col, (col, str(df[col].dtype), "—")
+    )
+    n_missing = df[col].isnull().sum()
+    pct_missing = n_missing / len(df) * 100
+    n_unique = df[col].nunique(dropna=True)
+
+    if pd.api.types.is_numeric_dtype(df[col]):
+        sample_vals = f"min {df[col].min():.2g} | median {df[col].median():.2g} | max {df[col].max():.2g}"
+    else:
+        top3 = df[col].value_counts(dropna=True).head(3).index.tolist()
+        sample_vals = ", ".join(str(v) for v in top3)
+
+    dict_rows.append(
+        {
+            "Cột": col,
+            "Tên tiếng Việt": viet_name,
+            "Kiểu": dtype_label,
+            "Mô tả": description,
+            "Unique": n_unique,
+            "Missing": n_missing,
+            "Missing (%)": round(pct_missing, 1),
+            "Giá trị mẫu": sample_vals,
+        }
+    )
+
+dict_df = pd.DataFrame(dict_rows)
+
+
+# Highlight missing cao
+def highlight_missing(val):
+    if isinstance(val, float) and val > 50:
+        return "background-color: #FDECEA; color: #C0392B; font-weight: bold"
+    elif isinstance(val, float) and val > 20:
+        return "background-color: #FEF9E7; color: #B7770D"
+    return ""
+
+
+styled = dict_df.style.map(highlight_missing, subset=["Missing (%)"]).set_properties(
+    **{"text-align": "left"}
+)
+st.dataframe(styled, use_container_width=True, hide_index=True, height=420)
+
+st.markdown("---")
+
+# ── 3. Missing Values ────────────────────────────────────
+st.subheader("3. Missing Values")
+
+missing_df = (
+    pd.DataFrame(
+        {
+            "Cột": df.columns,
+            "Missing": df.isnull().sum().values,
+            "Missing (%)": (df.isnull().sum().values / len(df) * 100).round(1),
+        }
+    )
+    .sort_values("Missing (%)", ascending=False)
+    .query("`Missing` > 0")
 )
 
-inject_css(); setup_sidebar()
-
-# ====== Load ======
-products, shops, reviews = load_data()
-active = get_active(products)
-
-# ====== Header ======
-st.title("Mô tả dữ liệu – Shopee Mỹ phẩm VN")
-st.caption("Snapshot crawl 18–19/3/2026 | Yêu cầu §2.3.3: kích thước mẫu, cấu trúc, phân bố biến")
-
-# ====== KPIs ======
-c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("Sản phẩm", f"{len(products):,}")
-c2.metric("Cửa hàng", f"{len(shops):,}")
-c3.metric("Đánh giá", f"{len(reviews):,}")
-c4.metric("Danh mục con", f"{products['sub_category'].nunique()}")
-rev_tong = products['revenue_est'].sum() / 1e9  # convert to tỷ
-c5.metric("Tổng DT ước tính", f"{rev_tong:,.0f} tỷ đồng")
-
-st.info("""
-**Vị trí code thu thập dữ liệu:**
-File **`crawling/shopee_crawler.py`** — chứa toàn bộ code crawl sản phẩm, shop và reviews từ Shopee.
-""")
-
-st.markdown("---")
-
-# ========================
-# 1. Cấu trúc dữ liệu (schema)
-# ========================
-st.subheader("1. Cấu trúc dữ liệu")
-tab_p, tab_s, tab_r = st.tabs(["products.csv", "shops.csv", "reviews.csv"])
-
-with tab_p:
-    schema = pd.DataFrame({
-        "Trường": ["item_id","shop_id","sub_category","sort_source","name",
-                   "brand / brand_normalized","price","original_price","discount_pct",
-                   "price_tier","sold","monthly_sold","rating","rating_count",
-                   "r5…r1","is_mall","has_flash_sale","is_free_ship","revenue_est",
-                   "shop_followers","shop_rating","shop_response_rate","shop_location"],
-        "Kiểu": ["int","int","str","str","str","str","float","float","float (%)","str",
-                 "int","int","float","int","int","bool","bool","bool","float",
-                 "int","float","float","str"],
-        "Mô tả": ["ID sản phẩm","ID cửa hàng","Danh mục con (22 loại)","Keyword crawl","Tên SP",
-                  "Thương hiệu","Giá hiện tại (VND)","Giá gốc","% chiết khấu",
-                  "budget/mid-low/mid/premium/luxury","Tổng đã bán","Bán trong tháng",
-                  "Điểm TB (0–5)","Số lượt đánh giá","Số lượt 5 sao -> 1 sao",
-                  "1=Shopee Mall","1=Flash sale","1=Miễn ship","price x sold (ước tính)",
-                  "Followers cửa hàng","Rating cửa hàng","Tỷ lệ phản hồi","Tỉnh/thành"],
-    })
-    st.dataframe(schema, hide_index=True, use_container_width=True)
-    st.caption(f"{len(products):,} dòng x {len(products.columns)} cột."
-               f"Missing: {products.isnull().sum().sum():,} ô")
-
-with tab_s:
-    schema_s = pd.DataFrame({
-        "Trường": ["shop_id","shop_name","is_mall","is_verified","follower_count",
-                   "rating_star","rating_count","response_rate","location","total_products","total_sold"],
-        "Mô tả": ["Khóa chính","Tên cửa hàng","Shopee Mall","Xác thực","Số followers",
-                  "Rating TB (0–5)","Số lượt đánh giá","Tỷ lệ phản hồi (0–1)","Tỉnh/thành",
-                  "Tổng SP đang bán","Tổng đã bán"],
-    })
-    st.dataframe(schema_s, hide_index=True, use_container_width=True)
-    st.caption(f"{len(shops):,} dòng x {len(shops.columns)} cột")
-
-with tab_r:
-    schema_r = pd.DataFrame({
-        "Trường": ["item_id","shop_id","reviewer_id","rating","review_text",
-                   "review_length","has_image","has_video","helpful_count","reviewed_ts"],
-        "Mô tả": ["FK->products","FK->shops","ID ẩn danh","Số sao (1–5)","Nội dung tự do",
-                  "Độ dài (ký tự)","Kèm ảnh","Kèm video","Lượt thấy hữu ích","Timestamp"],
-    })
-    st.dataframe(schema_r, hide_index=True, use_container_width=True)
-    st.caption(f"{len(reviews):,} dòng x {len(reviews.columns)} cột")
+fig_missing = px.bar(
+    missing_df,
+    x="Cột",
+    y="Missing (%)",
+    text="Missing (%)",
+    color="Missing (%)",
+    color_continuous_scale=["#AED6F1", "#2E86C1", "#1A5276"],
+    title="Tỷ lệ missing value theo cột (%)",
+    labels={"Cột": "Tên cột", "Missing (%)": "Tỷ lệ thiếu (%)"},
+    height=380,
+)
+fig_missing.update_traces(texttemplate="%{text}%", textposition="outside")
+fig_missing.update_layout(
+    plot_bgcolor="#FFFFFF",
+    paper_bgcolor="#FFFFFF",
+    coloraxis_showscale=False,
+    font=dict(color="#2C3E50"),
+    xaxis=dict(gridcolor="#E8E8E8"),
+    yaxis=dict(gridcolor="#E8E8E8"),
+    margin=dict(t=50, b=20),
+)
+st.plotly_chart(fig_missing, use_container_width=True)
 
 st.markdown("---")
 
-# ========================
-# 2. Phân bố các biến chính
-# ========================
-st.subheader("2. Phân bố các biến chính")
+# ── 4. Thống kê mô tả ────────────────────────────────────
+st.subheader("4. Thống kê mô tả — Cột số")
 
-r1c1, r1c2 = st.columns(2)
-
-with r1c1:
-    st.markdown("**Phân bố phân khúc giá (price_tier)**")
-    tier_order = ["budget", "mid-low", "mid", "premium", "luxury"]
-    tc = products["price_tier"].value_counts().reindex(tier_order).dropna()
-    fig = px.bar(
-        x=tc.index, y=tc.values,
-        color=tc.values, color_continuous_scale=SEQ_BLUES,
-        text=tc.values,
-        labels={"x": "Phân khúc", "y": "Số sản phẩm"},
-        title="Phân bố price_tier",
+numeric_cols = df.select_dtypes(include="number").columns.tolist()
+desc = (
+    df[numeric_cols]
+    .describe()
+    .round(3)
+    .T.rename(
+        columns={
+            "count": "Số giá trị",
+            "mean": "Trung bình",
+            "std": "Độ lệch chuẩn",
+            "min": "Min",
+            "25%": "Q1",
+            "50%": "Median",
+            "75%": "Q3",
+            "max": "Max",
+        }
     )
-    fig.update_traces(textposition="outside")
-    fig.update_layout(showlegend=False, plot_bgcolor="white", coloraxis_showscale=False)
-    st.plotly_chart(fig, use_container_width=True)
-    st.caption("**Nhận xét:** ~90% sản phẩm ở budget + mid-low. Luxury chỉ ~28 sản phẩm.")
+)
+# Thêm cột tên tiếng Việt
+desc.insert(0, "Tên tiếng Việt", [DATA_DICT.get(c, (c,))[0] for c in desc.index])
+st.dataframe(desc, use_container_width=True)
 
-with r1c2:
-    st.markdown("**Top 10 danh mục theo doanh thu ước tính**")
-    top10 = (
-        active.groupby("sub_category")["revenue_est"]
-        .sum()
-        .sort_values(ascending=False)
-        .head(10) / 1e9
-    )
-    fig = px.bar(
-        x=top10.values, y=top10.index, orientation="h",
-        color=top10.values, color_continuous_scale=SEQ_BLUES,
-        text=top10.values.round(0),
-        labels={"x": "Tỷ VND", "y": ""},
-        title="Top 10 danh mục – Doanh thu ước tính (tỷ VND)",
-    )
-    fig.update_traces(texttemplate="%{text:.0f}B", textposition="outside")
-    fig.update_layout(
-        showlegend=False, plot_bgcolor="white",
-        yaxis={"categoryorder": "total ascending"},
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    st.caption("**Nhận xét:** Mặt nạ dẫn đầu (~700B), gấp 1.6x sữa rửa mặt.")
+st.markdown("---")
 
-r2c1, r2c2 = st.columns(2)
+# ── 5. Phân phối cột số ──────────────────────────────────
+st.subheader("5. Phân phối cột số")
+st.markdown("Chọn một cột để xem histogram gốc và phiên bản log-transform.")
 
-with r2c1:
-    st.markdown("**Phân bố rating đánh giá (J-curve)**")
-    rc = reviews["rating"].value_counts().sort_index()
-    bar_colors = [CB_VERMIL, CB_VERMIL, CB_ORANGE, CB_SKYBLUE, CB_BLUE]
-    fig = go.Figure()
-    for i, (star, cnt) in enumerate(rc.items()):
-        fig.add_bar(
-            x=[star], y=[cnt],
-            marker_color=bar_colors[i],
-            text=[f"{cnt:,}<br>({cnt/len(reviews)*100:.1f}%)"],
-            textposition="outside",
-            name=f"{star} sao",
+selected_col = st.selectbox(
+    "Chọn cột:",
+    numeric_cols,
+    format_func=lambda c: f"{c}  —  {DATA_DICT.get(c, (c,))[0]}",
+    index=numeric_cols.index("Price") if "Price" in numeric_cols else 0,
+)
+
+col_a, col_b = st.columns(2)
+with col_a:
+    fig_hist = px.histogram(
+        df,
+        x=selected_col,
+        nbins=50,
+        title=f"Phân phối: {selected_col}",
+        labels={selected_col: DATA_DICT.get(selected_col, (selected_col,))[0]},
+        color_discrete_sequence=["#2E86AB"],
+        height=360,
+    )
+    fig_hist.update_layout(
+        plot_bgcolor="#FFFFFF",
+        paper_bgcolor="#FFFFFF",
+        font=dict(color="#2C3E50"),
+        xaxis=dict(gridcolor="#E8E8E8"),
+        yaxis=dict(gridcolor="#E8E8E8", title="Số lượng"),
+    )
+    st.plotly_chart(fig_hist, use_container_width=True)
+
+with col_b:
+    if df[selected_col].dropna().min() > 0:
+        fig_log = px.histogram(
+            df,
+            x=np.log1p(df[selected_col]),
+            nbins=50,
+            title=f"Phân phối log(1 + {selected_col})",
+            color_discrete_sequence=["#F28E2B"],
+            height=360,
         )
-    fig.update_layout(
-        showlegend=True, plot_bgcolor="white",
-        xaxis_title="Số sao", yaxis_title="Số đánh giá",
-        title=f"Phân bố rating – {len(reviews):,} đánh giá",
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    st.caption("**Nhận xét:** 99.58% là 5 sao — J-curve điển hình TMĐT.")
-
-with r2c2:
-    st.markdown("**Ma trận tương quan các biến số**")
-    num_cols = ["price", "discount_pct", "sold", "rating", "revenue_est",
-                "shop_followers", "shop_rating"]
-    available = [c for c in num_cols if c in active.columns]
-    corr = active[available].corr()
-    fig = px.imshow(
-        corr, text_auto=".2f",
-        color_continuous_scale=DIV_RDBU,
-        zmin=-1, zmax=1, aspect="auto",
-        title="Ma trận tương quan Pearson",
-    )
-    fig.update_layout(plot_bgcolor="white")
-    st.plotly_chart(fig, use_container_width=True)
-    st.caption(
-        "**Nhận xét:** sold<->revenue r=0.79 (mạnh nhất). "
-        "shop_rating↔revenue r ~ -0.025 (nghịch chiều nhẹ — counterintuitive)."
-    )
+        fig_log.update_xaxes(
+            title=f"log(1 + {DATA_DICT.get(selected_col,(selected_col,))[0]})"
+        )
+        fig_log.update_layout(
+            plot_bgcolor="#FFFFFF",
+            paper_bgcolor="#FFFFFF",
+            font=dict(color="#2C3E50"),
+            xaxis=dict(gridcolor="#E8E8E8"),
+            yaxis=dict(gridcolor="#E8E8E8", title="Số lượng"),
+        )
+        st.plotly_chart(fig_log, use_container_width=True)
+    else:
+        st.info("Không thể log-transform (có giá trị ≤ 0)")
 
 st.markdown("---")
-# ========================
-# 3. Thống kê mô tả
-# ========================
-st.subheader("3. Thống kê mô tả tổng hợp")
-desc_cols = ["price", "original_price", "discount_pct", "sold",
-             "monthly_sold", "rating", "rating_count", "revenue_est"]
-avail = [c for c in desc_cols if c in products.columns]
-st.dataframe(products[avail].describe().round(2), use_container_width=True)
 
-st.markdown("---")
-st.markdown("""
-### 4. Nhận xét tổng quan
+# ── 6. Phân phối cột categorical ─────────────────────────
+st.subheader("6. Phân phối cột categorical")
+st.markdown("Chọn một cột để xem tần suất các giá trị xuất hiện.")
 
-- **Kích thước mẫu:** 20,658 sản phẩm (38 cột, 4,448 ô missing); 5,746 cửa hàng; 23,989 đánh giá — đủ lớn để phân tích phân phối và so sánh nhóm. Dữ liệu bao phủ 28 danh mục con.
+cat_cols = df.select_dtypes(include=["object", "string"]).columns.tolist()
+selected_cat = st.selectbox(
+    "Chọn cột:", cat_cols, format_func=lambda c: f"{c}  —  {DATA_DICT.get(c, (c,))[0]}"
+)
 
-- **Phân bố price_tier (budget/mid-low chiếm ưu thế):** Budget có 10,051 SP và mid-low có 8,633 SP — cộng lại chiếm ~90% tổng số sản phẩm. Phân khúc mid chỉ có 1,787 SP, premium 159 SP, luxury 28 SP. Phản ánh đúng định vị Shopee là nền tảng đại chúng giá phải chăng.
+val_counts = df[selected_cat].value_counts(dropna=False).reset_index()
+val_counts.columns = ["Giá trị", "Số lượng"]
+val_counts["Giá trị"] = val_counts["Giá trị"].astype(str).replace("nan", "⚠️ Missing")
 
-- **Phân bố giá và sold (lệch phải mạnh):** Giá trung bình 144,452 đồng nhưng trung vị chỉ 103,206 đồng — chênh lệch lớn do outlier giá cao kéo trung bình lên. Sold trung bình 1,776 nhưng trung vị chỉ 95 — phân phối lũy thừa điển hình TMĐT: phần lớn SP bán ít, một thiểu số nhỏ bán rất nhiều.
+top_n = min(20, len(val_counts))
+plot_df = val_counts.head(top_n).sort_values("Số lượng", ascending=True)
+chart_height = max(400, top_n * 45)
 
-- **Phân bố rating (J-curve):** 23,888/23,989 đánh giá (99.6%) là 5 sao — J-curve điển hình TMĐT Việt Nam. Shopee khuyến khích rating bằng xu/voucher -> cần cân bằng khi dùng ML phân loại cảm xúc (tham khảo thêm tại trang Đánh giá).
-
-- **Tương quan sold <-> revenue (r=0.79):** Liên kết mạnh nhất trong toàn bộ ma trận — doanh thu ước tính được quyết định chủ yếu bởi lượng bán, không phải giá. Hàm ý: chiến lược volume-first hiệu quả hơn premium-only trên Shopee.
-
-- **Counterintuitive — shop_rating <-> revenue (r ~ -0.025):** Tương quan âm nhẹ giữa rating cửa hàng và doanh thu sản phẩm. Giải thích: các mega-shop bán hàng chục nghìn SP có thể có vài review tiêu cực làm giảm nhẹ điểm rating, trong khi shop nhỏ mới mở có ít review toàn 5 sao nhưng doanh thu thấp. Đây là trường hợp Simpson's Paradox — xem chi tiết tại trang Shops.
-""")
+fig_bar = px.bar(
+    plot_df,
+    x="Số lượng",
+    y="Giá trị",
+    orientation="h",
+    title=f"Top {top_n} giá trị: {selected_cat} — {DATA_DICT.get(selected_cat, (selected_cat,))[0]}",
+    text="Số lượng",
+    height=chart_height,
+    labels={
+        "Giá trị": DATA_DICT.get(selected_cat, (selected_cat,))[0],
+        "Số lượng": "Số lượng BĐS",
+    },
+)
+fig_bar.update_traces(
+    marker_color="#2E86AB",
+    marker_line_color="#1A5276",
+    marker_line_width=0.5,
+    textposition="outside",
+    textfont=dict(color="#2C3E50"),
+)
+fig_bar.update_layout(
+    plot_bgcolor="#FFFFFF",
+    paper_bgcolor="#FFFFFF",
+    font=dict(color="#2C3E50"),
+    xaxis=dict(gridcolor="#E8E8E8", linecolor="#CCCCCC"),
+    yaxis=dict(linecolor="#CCCCCC"),
+    margin=dict(l=20, r=60, t=50, b=20),
+    yaxis_title=None,
+)
+st.plotly_chart(fig_bar, use_container_width=True)
+st.dataframe(val_counts, hide_index=True, use_container_width=True)

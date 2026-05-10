@@ -1,150 +1,147 @@
-﻿"""
-Home.py — Trang chủ Dashboard Shopee Mỹ phẩm VN
-"""
-import streamlit as st
-import pandas as pd
-import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from utils.helpers import load_data, inject_css, setup_sidebar
+﻿import streamlit as st
 
-inject_css(); setup_sidebar()
-
-try:
-    products, shops, reviews = load_data()
-    DATA_OK = True
-except FileNotFoundError:
-    DATA_OK = False
-
-# ====================== Header ========================================================================================
-st.title("Phân tích Thị trường Mỹ phẩm & Chăm sóc Cá nhân")
-st.caption("Shopee Vietnam, Snapshot crawl 18–19/3/2026, Lab 01 – Trực quan hóa Dữ liệu 23KHDL")
-
-if not DATA_OK:
-    st.error(
-        f"Không tìm thấy file dữ liệu \n"
-    )
-    st.stop()
-
+st.title("🏠 House Price Prediction — Vietnam 2024")
 st.markdown("---")
-st.markdown("""
-### Bài toán phân tích chung
 
-> **Phân tích thị trường mỹ phẩm và chăm sóc cá nhân trên Shopee Việt Nam** dựa trên bộ dữ liệu
-> crawl ngày 18–19/3/2026 (**{:,} sản phẩm; {:,} cửa hàng; {:,} đánh giá**) nhằm xác định
-> các yếu tố then chốt ảnh hưởng đến **doanh thu ước tính** và **hành vi đánh giá** của người tiêu dùng,
-> từ đó **đề xuất ít nhất 3 chiến lược kinh doanh** có cơ sở dữ liệu cho người bán hàng trên sàn.
-""".format(len(products), len(shops), len(reviews)))
+# ── Giới thiệu ───────────────────────────────────────────
+col1, col2 = st.columns([2, 1])
 
-c1,c2,c3,c4,c5 = st.columns(5)
-c1.metric("Sản phẩm", f"{len(products):,}")
-c2.metric("Cửa hàng", f"{len(shops):,}")
-c3.metric("Đánh giá", f"{len(reviews):,}")
-c4.metric("Danh mục con", f"{products['sub_category'].nunique()}")
-rev_tong = products['revenue_est'].sum() / 1e9  # convert to "tỷ"
-c5.metric("Tổng doanh thu ước tính", f"{rev_tong:,.0f} tỷ đồng")
-
-st.markdown("---")
-st.markdown("### Điều hướng")
-col1, col2 = st.columns(2)
 with col1:
-    st.page_link("pages/EDA.py", label="Mô tả dữ liệu")
-    st.caption("Schema - KPIs - phân bố biến - correlation matrix")
-    st.page_link("pages/01_Pricing.py", label="Giá & Danh mục")
-    st.caption("MT1 Discount tối ưu - MT2 Top danh mục - MT7 BCG + Lollipop")
-    st.page_link("pages/02_Reviews.py", label="Đánh giá & Cảm xúc khách hàng")
-    st.caption("MT8 (23127488) - J-curve - từ khóa 1–3 sao vs 5 sao")
+    st.subheader("Giới thiệu dataset")
+    st.markdown(
+        """
+    Bộ dữ liệu **House Price Prediction Dataset Vietnam 2024** được thu thập từ trang
+    [batdongsan.vn](https://batdongsan.vn), phân phối qua Kaggle.
+
+    Dataset chứa thông tin về **30.000+ bất động sản nhà ở** tại Việt Nam, bao gồm:
+    - Vị trí địa lý (tỉnh, huyện, dự án)
+    - Đặc điểm vật lý (diện tích, mặt tiền, số tầng, phòng ngủ...)
+    - Tình trạng pháp lý & nội thất
+    - Giá bán (đơn vị: **tỷ đồng VND**)
+    """
+    )
+
 with col2:
-    st.page_link("pages/03_Market.py", label="Phân khúc Thị trường")
-    st.caption("MT3 K-Means (price x sold)")
-    st.page_link("pages/04_Shops.py", label="Hiệu quả Cửa hàng")
-    st.caption("MT9 K-Means shop - MT5 Pearson correlation (23127361)")
-    st.page_link("pages/05_Geo_Mall.py", label="Địa lý & Shop Mall")
-    st.caption("MT6 Top tỉnh/thành - MT4 Box/Violin/Donut/Radar (22127418)")
+    st.subheader("⚡ Thông tin nhanh")
+    st.info("📦 **30.000+** bất động sản")
+    st.info("📍 Trải rộng **toàn quốc**")
+    st.info("📅 Thu thập năm **2024**")
+    st.info("💰 Đơn vị giá: **tỷ đồng VND**")
 
 st.markdown("---")
 
-# === Objectives table ===
-st.markdown("### Danh sách 10 Objectives đã hoàn thành")
-obj_df = pd.DataFrame({
-    "Mục tiêu": ["EDA","MT1","MT2","MT3","MT4","MT5","MT6","MT7","MT8","MT9"],
-    "Nội dung": ["Tổng quan dataset - kích thước, schema, phân bố biến, correlation",
-                "Sử dụng dữ liệu discount_pct, sold và price_tier của 20,658 sản phẩm crawl ngày 18/3/2026 để xác định khoảng discount_pct có trung vị sold cao nhất trong từng phân khúc giá (budget -> luxury), từ đó đề xuất ngưỡng chiết khấu tối ưu cho mỗi phân khúc, hoàn thành trong phạm vi phân tích snapshot này.",
-                "Tính tổng revenue_est và trung bình price, discount_pct, sold của từng sub_category trong bộ dữ liệu 18/3/2026 để xác định top 5 danh mục có doanh thu ước tính cao nhất và mô tả đặc trưng định giá của từng nhóm bằng ít nhất 2 loại biểu đồ khác nhau.",
-                "Phân chia thị trường mỹ phẩm Shopee thành 5 phân khúc chiến lược dựa trên mối tương quan giữa giá bán và sản lượng. Từ đó, đánh giá tỷ trọng đóng góp doanh thu của từng phân khúc.",
-                "So sánh sold, rating, revenue_est giữa Shopee Mall (8,298 sp) và Non-mall (12,360 sp) từ dữ liệu 18/3/2026.",
-                "Xác định chỉ số shop (followers, response_rate, shop_rating) có tương quan Pearson mạnh nhất với revenue_est",
-                "Phân tích phân bố doanh thu theo tỉnh/thành để xác định 3 khu vực dẫn đầu và đặc trưng riêng",
-                "So sánh đồng thời avg_sold và total_revenue_est trên 22 sub_category trong snapshot 18/3/2026, phân loại từng danh mục vào một trong 4 chiến lược (Ngôi sao/Sinh lời/Phễu/Câu hỏi) — để người bán mới lựa chọn đúng danh mục phù hợp với chiến lược của mình ngay từ đầu: muốn volume cao -> phễu; muốn margin cao -> sinh lời; muốn cả hai -> ngôi sao.",
-                "Trích xuất và phân tích 10 từ khóa phổ biến trong các đánh giá từ 1 - 3 sao mà nhóm thu thập được, tính tới thời điểm tháng 3 năm 2026, phân loại theo 4 nhóm nguyên nhân (sự cố sản phẩm, trải nghiệm khách hàng, chất lượng đóng gói và vận chuyển) để từ đó để xuất các giải pháp tương ứng giúp ngăn chặn hoặc thuyết phục khách hàng chỉnh sửa đánh giá.",
-                "Phân các shop trên thị trường Shopee thành 4 nhóm dựa trên 4 tiêu chí lòng tin và dịch vụ (lượt người theo dõi, tổng lượt đánh giá, tổng điểm đánh giá và tốc độ phản hồi tin nhắn) để từ đó xác định 2 nhóm mang lại doanh thu ước tính và lượt bán cao nhất."],
-    "Biểu đồ": ["-",
-                "Heatmap, Box, Scatter + OLS",
-                "Bar, Grouped bar, Bubble",
-                "Scatter cluster, Pie",
-                "Box x 3, Grouped bar, Donut x 2, Violin",
-                "Heatmap Pearson",
-                "Bar ngang, Bubble, Radar chart",
-                "BCG bubble 22 danh mục + Lollipop composite score",
-                "Từ khóa phổ biến",
-                "Silhouette, Pie, Bar"
-                ],      
-    "Trang":      ["EDA","Giá & Danh mục","Giá & Danh mục","03 Market","05 Geo","04 Shops",
-                   "05 Geo","Giá & Danh mục","02 Reviews","04 Shops"],
-    "Thành viên": ["Cả nhóm","22127254","22127254","23127488","22127418","23127361",
-                   "22127418","22127254","23127488","23127361"],
-    "ML":         ["—","Random Forest","—","K-Means","—","—","—","—","—","K-Means"],
-})
-st.dataframe(obj_df, hide_index=True, use_container_width=True)
+# ── Backstory ────────────────────────────────────────────
+st.subheader("📖 Bối cảnh thị trường")
+
+tab1, tab2 = st.tabs(["🌊 Làn sóng sốt đất 2020–2022", "🏘️ Thị trường hai phân khúc"])
+
+with tab1:
+    st.markdown(
+        """
+    Giai đoạn **2020–2022**, thị trường BĐS Việt Nam trải qua nhiều đợt tăng giá bất thường,
+    đặc biệt là đất nền vùng ven. Nhiều khu vực ven Hà Nội và các tỉnh như **Bắc Giang, Bắc Ninh,
+    Hòa Bình, Hưng Yên** ghi nhận giá đất tăng cục bộ **40–50%** so với trước dịch.
+    Cuối năm 2022, thị trường *"đóng băng"*, nhà đầu tư buộc phải hạ giá **20–30%** để thanh khoản.
+    """
+    )
+    st.info(
+        """
+    📌 **Liên hệ với dataset**
+
+    Dataset được thu thập năm 2024 — sau chu kỳ sốt đất và giai đoạn đóng băng — nên phản ánh
+    mặt bằng giá **đã được điều chỉnh**, không phải đỉnh sốt. Tuy nhiên, dấu vết vẫn có thể
+    quan sát được: **Hưng Yên** xuất hiện dày đặc trong dataset với các dự án Vinhomes Ocean Park
+    quy mô lớn, và `Price_per_m2` tại đây có thể cao bất thường so với các tỉnh lân cận
+    cùng quy mô kinh tế.
+    """
+    )
+
+    st.markdown("**📰 Nguồn tham khảo**")
+    st.markdown(
+        """
+    - 📰 [VnExpress: Nhà nước can thiệp khi giá nhà đất tăng hơn 20% trong 3 tháng](https://vnexpress.net/nha-nuoc-se-can-thiep-khi-gia-nha-dat-tang-hon-20-trong-3-thang-4779496.html)
+    - 📰 [VnExpress: Có hiệu ứng và thắc thức của bát động sản 2022](https://vnexpress.net/co-hoi-va-thach-thuc-cua-bat-dong-san-2022-4422754.html)
+    - 📰 [VnEconomy: Giá đất vùng ven có xu hướng tiếm cản giá khu vực trung tâm](https://vneconomy.vn/gia-dat-vung-ven-co-xu-huong-tiem-can-gia-khu-vuc-trung-tam.htm)
+    - 📰 [Vov: Kinh té bát động sản Hà Nội — Tung sót nhiều nhất miền Bác giải ra sao?](https://vov.vn/kinh-te/bat-dong-san-hung-yen-tung-sot-nhat-mien-bac-gio-ra-sao-post1215445.vov)
+    """
+    )
+
+with tab2:
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("#### 🏗️ Nhà dự án (`Is_Project = 1`)")
+        st.markdown(
+            """
+        Vinhomes, Him Lam, Sun Casa,...
+
+        - Giá định sẵn theo chính sách chủ đầu tư
+        - Hạ tầng đồng bộ, pháp lý rõ ràng
+        - Ít biến động, dễ dự đoán hơn
+        """
+        )
+    with c2:
+        st.markdown("#### 🏠 Nhà phố / thổ cư (`Is_Project = 0`)")
+        st.markdown(
+            """
+        Nhà riêng lẻ, đất thổ cư,...
+
+        - Giá phụ thuộc vị trí, mặt tiền, thương lượng
+        - Biến động cao hơn, khó dự đoán hơn
+        - Đa dạng về pháp lý
+        """
+        )
+
+    st.info(
+        """
+    📌 Hai phân khúc được phân biệt qua cột `Is_Project`, cho phép so sánh trực tiếp
+    hành vi giá, mức độ hoàn thiện pháp lý (`Has_certificate`) và tương quan giữa
+    đặc điểm vật lý với giá bán giữa hai nhóm.
+    """
+    )
 
 st.markdown("---")
 
-# === Cross-objective insights & Overall conclusion ===
-st.markdown("### Kết luận Tổng hợp & Chiến lược Kinh doanh")
+# ── Điểm bất ngờ trong dữ liệu ──────────────────────────
+st.subheader("⚠️ Tính ngoại lệ & Bất ngờ trong dữ liệu")
+st.markdown("Bốn điểm cần lưu ý trước khi phân tích:")
 
-st.markdown("""
-#### Những phát hiện nổi bật liên kết nhiều mục tiêu
+c1, c2 = st.columns(2)
 
-**1. Chuỗi Discount -> Phân khúc -> Chiến lược Sản phẩm (MT1 -> MT2 -> MT7)**
-> MT1 cho thấy phân khúc **premium/luxury** bán tốt nhất khi discount thấp (0–10%). MT2 xác nhận **kem dưỡng ẩm và serum** — hai danh mục sinh lời (BCG, MT7) — đều thuộc phân khúc giá cao. Kết hợp: người bán danh mục premium không nên chạy đua giảm giá — sẽ giảm cả margin lẫn lượng bán.
+with c1:
+    st.warning(
+        """
+    **1. Phân phối giá tập trung — không right-skewed như kỳ vọng**
 
-**2. Mặt nạ là ngoại lệ của thị trường (MT2, 3, 8)**
-> Mặt nạ dẫn đầu doanh thu (700B), lượng bán TB cao nhất (5,280), Composite Score = 1.000 (MT7) và thể hiện trong cluster "Phổ thông – Bán chạy" (MT3). Ba mục tiêu đều xác nhận: đây là category duy nhất đạt cả hai chiều (volume và revenue) nhưng cũng là sân chơi cạnh tranh nhất.
+    Trái với kỳ vọng, phân phối `Price` khá đối xứng, tập trung trong khoảng
+    **1–10 tỷ đồng**. Dữ liệu từ batdongsan.vn có thể bị giới hạn ngầm ở phân khúc
+    nhà ở phổ thông — biệt thự, đất dự án giá trăm tỷ gần như vắng mặt.
+    """
+    )
+    st.warning(
+        """
+    **2. Chênh lệch giá/m² giữa các tỉnh — hai thế giới trong cùng dataset**
 
-**3. Followers quyết định doanh thu — Không phải Rating (MT5, 9)**
-> MT5 (Pearson correlation) xác nhận followers là yếu tố có |r| cao nhất với revenue. MT9 (K-Means shop) cho thấy "Shop Dẫn Đầu" — nhóm followers cao nhất — chiếm tỷ trọng doanh thu không cân xứng. Nhất quán với MT8 (reviews): rating 5 sao phổ biến trên toàn nền tảng nên không còn là yếu tố phân biệt.
+    `Price_per_m2` tại trung tâm TP.HCM có thể cao hơn tỉnh vùng sâu **50–100 lần**.
+    Phân phối địa lý tạo ra hai cụm tách biệt rõ ràng theo `Province`.
+    """
+    )
 
-**4. Non-Mall vượt Mall về doanh thu — Nhưng không đều (MT4, 5)**
-> MT4: Non-Mall chiếm ~74% tổng doanh thu dù chỉ chiếm ~60% số SP. Nhưng MT5 cho thấy followers — yếu tố tương quan cao nhất — có phân phối lệch phải mạnh: một số ít shop Non-Mall quy mô lớn đang kéo trung bình lên. Median (từ box plot) cho thấy sản phẩm Non-Mall điển hình không vượt trội Mall.
+with c2:
+    st.warning(
+        """
+    **3. Nghịch lý diện tích — nhà nhỏ nhưng đắt hơn/m²**
 
-**5. Tập trung địa lý song hành với tập trung thị trường (MT6)**
-> TP.HCM và Hà Nội chiếm ~75% doanh thu (MT6) — tương tự như phân khúc "Cao cấp – Bán chạy" (MT3) tập trung phần lớn doanh thu. Cả địa lý và phân khúc sản phẩm đều cho thấy thị trường winner-takes-most.
-""")
+    BĐS diện tích nhỏ đôi khi có `Price_per_m2` cao hơn nhà lớn, do vị trí trung tâm
+    hoặc tiện ích đặc biệt. Mối quan hệ `Area` vs `Price_per_m2` không tuyến tính thuần túy.
+    """
+    )
+    st.warning(
+        """
+    **4. Dự án đôi khi đắt hơn nhà phố cùng diện tích**
+
+    Phản ánh kỳ vọng vào hạ tầng, tiện ích và thương hiệu chủ đầu tư. Có thể kiểm chứng
+    trực tiếp bằng cách so sánh `Price_per_m2` theo cột `Is_Project`.
+    """
+    )
 
 st.markdown("---")
-
-col_s1, col_s2, col_s3 = st.columns(3)
-with col_s1:
-    st.info("""
-    **Chiến lược 1:**
-    **Discount theo phân khúc, không đồng đều**
-
-    Dựa trên MT1: Budget (>50%), mid-low (10–20%), mid (30–40%), premium/luxury (<=10%).
-    Áp voucher đúng tier — tránh giảm giá tràn lan làm loãng brand premium.
-    """)
-with col_s2:
-    st.info("""
-    **Chiến lược 2:**
-    **Phễu -> Sinh lời (danh mục ladder)**
-
-    Dựa trên MT2 & 8: Bắt đầu từ sữa rửa mặt/kem chống nắng (Phễu) để xây 50+ reviews và followers.
-    Pivot sang serum/kem dưỡng ẩm (Sinh lời) khi uy tín đủ.
-    """)
-with col_s3:
-    st.info("""
-    **Chiến lược 3:**
-    **Đầu tư Followers thay vì chạy đua giá**
-
-    Dựa trên MT5 & 9: Followers có tương quan cao nhất với revenue.
-    Chiến dịch tăng Followers (follow-to-get-voucher) ROI cao hơn chạy Flash Sale.
-    Maintain response_rate >90% để vào nhóm "Shop Uy Tín".
-    """)

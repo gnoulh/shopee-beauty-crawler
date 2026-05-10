@@ -101,11 +101,11 @@ nvidia-cuda-nvrtc==13.0.88
     # via cuda-toolkit
 nvidia-cuda-runtime==13.0.96
     # via cuda-toolkit
-nvidia-cudnn-cu13==9.19.0.56
+# nvidia-cudnn-cu13==9.19.0.56
     # via torch
 nvidia-cufft==12.0.0.61
     # via cuda-toolkit
-nvidia-cufile==1.15.1.6
+# nvidia-cufile==1.15.1.6
     # via cuda-toolkit
 nvidia-curand==10.4.0.35
     # via cuda-toolkit
@@ -115,9 +115,9 @@ nvidia-cusparse==12.6.3.3
     # via
     #   cuda-toolkit
     #   nvidia-cusolver
-nvidia-cusparselt-cu13==0.8.0
+# nvidia-cusparselt-cu13==0.8.0
     # via torch
-nvidia-nccl-cu13==2.28.9
+# nvidia-nccl-cu13==2.28.9
     # via torch
 nvidia-nvjitlink==13.0.88
     # via
@@ -125,7 +125,7 @@ nvidia-nvjitlink==13.0.88
     #   nvidia-cufft
     #   nvidia-cusolver
     #   nvidia-cusparse
-nvidia-nvshmem-cu13==3.4.5
+# nvidia-nvshmem-cu13==3.4.5
     # via torch
 nvidia-nvtx==13.0.85
     # via cuda-toolkit
@@ -218,7 +218,7 @@ torch==2.11.0
     # via final (pyproject.toml)
 tqdm==4.67.3
     # via sklearn-crfsuite
-triton==3.6.0
+# triton==3.6.0
     # via torch
 typing-extensions==4.15.0
     # via

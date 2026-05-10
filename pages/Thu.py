@@ -16,7 +16,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from utils.helpers import load_data
 import datetime
-from code_editor import code_editor
+# from code_editor import code_editor
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -96,7 +96,7 @@ st.pyplot(fig)
             st.markdown("#### 📝 Chỉnh sửa & Phê duyệt")
             
             # Bộ soạn thảo hỗ trợ phím tắt
-            response = code_editor(st.session_state.temp_code, lang="python", height=[10, 20])
+            # response = code_editor(st.session_state.temp_code, lang="python", height=[10, 20])
             current_code = response['text']
             
             # CẬP NHẬT: Thực thi xem trước ngay lập tức bên dưới editor [cite: 58, 59]

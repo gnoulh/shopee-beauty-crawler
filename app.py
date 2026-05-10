@@ -8,11 +8,12 @@ st.set_page_config(
     page_title="Bất động sản Việt Nam 2024",
     layout="wide",
     initial_sidebar_state="expanded",
+    initial_sidebar_state="expanded",
 )
 
 pg = st.navigation(
     [
-        # st.Page("pages/Toan.py", title="Cấu trúc & Quy mô"),
+        st.Page("pages/Toan.py", title="Cấu trúc & Quy mô"),
         st.Page("pages/Dia_ly.py", title="Phân tích Địa lý"),
     ]
 )
